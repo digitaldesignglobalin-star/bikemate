@@ -17,6 +17,12 @@ function StatCard({ icon, label, value, sub, color = "text-white" }) {
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(() => {
+    if (typeof window === "undefined") {
+      return {
+        members: 1247, newToday: 12, freeStickers: 384, paidStickers: 91,
+        totalOrders: 0, revenue: 0, pendingOrders: 0, successOrders: 0,
+      };
+    }
     const orders = (() => { try { return JSON.parse(localStorage.getItem("bm_orders") || "[]"); } catch { return []; } })();
     const successO  = orders.filter(o => o.status === "success");
     const pendingO  = orders.filter(o => o.status === "pending");
@@ -39,6 +45,7 @@ export default function AdminDashboard() {
   });
 
   const [recentOrders, setRecentOrders] = useState(() => {
+    if (typeof window === "undefined") return [];
     try {
       const orders = JSON.parse(localStorage.getItem("bm_orders") || "[]");
       return orders.slice(0, 5);

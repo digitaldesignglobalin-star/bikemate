@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "../../components/CartContext";
 import { useAuth } from "../../components/AuthContext";
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const type = searchParams.get("type") || "store";
@@ -41,7 +41,6 @@ export default function CheckoutPage() {
       return;
     }
     
-    // Store checkout session to simulate state passing
     sessionStorage.setItem("checkout_session", JSON.stringify({
       type,
       amount: checkoutDetails.amount,
@@ -106,5 +105,13 @@ export default function CheckoutPage() {
          </div>
        </div>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="w-8 h-8 rounded-full border-2 border-bh-primary border-t-transparent animate-spin"></div></div>}>
+      <CheckoutContent />
+    </Suspense>
   );
 }

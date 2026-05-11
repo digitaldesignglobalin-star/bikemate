@@ -26,7 +26,7 @@ export default function StorePage() {
       const timeout = setTimeout(() => controller.abort(), 3000); // 3-second timeout
 
       try {
-        const res = await fetch("http://localhost:5000/api/products", { signal: controller.signal });
+        const res = await fetch("/api/products", { signal: controller.signal });
         clearTimeout(timeout);
         const data = await res.json();
         if (data.success && data.products.length > 0) {

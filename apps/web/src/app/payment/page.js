@@ -36,7 +36,7 @@ export default function PaymentPage() {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 5000);
       try {
-        const res  = await fetch("http://localhost:5000/api/payment/create-order", {
+        const res  = await fetch("/api/payment/create-order", {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
           body:    JSON.stringify({ amount }),
@@ -106,7 +106,7 @@ export default function PaymentPage() {
           try {
             const ctrl2 = new AbortController();
             const t2    = setTimeout(() => ctrl2.abort(), 5000);
-            const vRes  = await fetch("http://localhost:5000/api/payment/verify", {
+            const vRes  = await fetch("/api/payment/verify", {
               method:  "POST",
               headers: { "Content-Type": "application/json" },
               body:    JSON.stringify(response),

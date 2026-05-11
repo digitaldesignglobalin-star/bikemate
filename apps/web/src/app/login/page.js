@@ -1,24 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "../../components/AuthContext";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState(""); // Kept for admin login
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
-  const [step, setStep] = useState(1); // 1 = Email, 2 = OTP, 3 = Admin Password
+  const [step, setStep] = useState(1); // 1 = Phone, 2 = OTP, 3 = Admin Password
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, requestOTP, verifyOTP } = useAuth();
+  const { login, requestOTP, verifyOTP, setupRecaptcha } = useAuth();
+
+  useEffect(() => {
+    // Setup reCAPTCHA when the component mounts
+    setupRecaptcha("recaptcha-container");
+  }, [setupRecaptcha]);
 
   const handleRequestOTP = async (e) => {
     e.preventDefault();
     setError("");
     setIsSubmitting(true);
     try {
-      await requestOTP(email);
+      await requestOTP(phone);
       setStep(2);
     } catch (err) {
       setError(err.message);
@@ -32,7 +38,7 @@ export default function LoginPage() {
     setError("");
     setIsSubmitting(true);
     try {
-      await verifyOTP(email, otp);
+      await verifyOTP(phone, otp);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -70,8 +76,8 @@ export default function LoginPage() {
               {step === 2 ? "Verify OTP" : "Rider Login"}
             </h1>
             <p className="text-bh-gray text-sm">
-              {step === 1 ? "Enter email to receive secure code" : 
-               step === 2 ? `Check your inbox folder for ${email}` :
+              {step === 1 ? "Enter your mobile number to receive a secure code" : 
+               step === 2 ? `Check your messages for ${phone}` :
                "Master access for administrators"}
             </p>
           </div>
@@ -83,17 +89,23 @@ export default function LoginPage() {
               </div>
             )}
 
+            <div id="recaptcha-container"></div>
+
             {step === 1 && (
               <div className="space-y-2">
-                <label className="text-[0.65rem] font-black text-bh-gray-dark uppercase tracking-widest ml-1">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#0D0D0D] border border-white/5 rounded-xl p-4 text-sm focus:border-bh-primary outline-none transition-all"
-                  placeholder="rider@example.com"
-                />
+                <label className="text-[0.65rem] font-black text-bh-gray-dark uppercase tracking-widest ml-1">Mobile Number</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-bh-gray font-bold">+91</span>
+                  <input
+                    type="tel"
+                    required
+                    maxLength={10}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
+                    className="w-full bg-[#0D0D0D] border border-white/5 rounded-xl py-4 pr-4 pl-12 text-sm focus:border-bh-primary outline-none transition-all placeholder:text-bh-gray-darker font-mono"
+                    placeholder="9876543210"
+                  />
+                </div>
               </div>
             )}
 
@@ -114,7 +126,7 @@ export default function LoginPage() {
                   onClick={() => setStep(1)}
                   className="text-[0.65rem] font-bold text-bh-gray-dark hover:text-white mt-4 block mx-auto uppercase tracking-widest"
                 >
-                  ← Change Email
+                  ← Change Number
                 </button>
               </div>
             )}

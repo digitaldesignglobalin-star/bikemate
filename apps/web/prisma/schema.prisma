@@ -9,10 +9,10 @@ datasource db {
 
 model User {
   id                Int      @id @default(autoincrement())
-  email             String   @unique
-  name              String
-  password          String
-  phone             String?
+  email             String?  @unique
+  name              String?
+  password          String?
+  phone             String?  @unique
   city              String?
   address           String?
   role              Role     @default(USER)
