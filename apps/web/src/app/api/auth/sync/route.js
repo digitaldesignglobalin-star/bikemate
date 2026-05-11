@@ -14,7 +14,6 @@ export async function POST(req) {
     const user = await prisma.user.upsert({
       where: phone ? { phone: phone } : { email: email },
       update: {
-        lastLogin: new Date(), // If we add this field, or just update something
         updatedAt: new Date(),
       },
       create: {

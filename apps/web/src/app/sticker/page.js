@@ -11,12 +11,13 @@ export default function StickerPage() {
   const stickerRef = useRef(null);
   const { user, isPremium } = useAuth();
   const [formData, setFormData] = useState({
-    name: "Ashish Ganguly",
-    guardian: "Radha Raman Ganguly",
-    contact: "+91 98765 43210",
-    blood: "O+",
-    city: "Mumbai",
-    address: "Bandra West, Mumbai"
+    name: user?.name || "Ashish Ganguly",
+    guardian: user?.guardianName || "Radha Raman Ganguly",
+    contact: user?.phone || "+91 98765 43210",
+    blood: user?.bloodGroup || "O+",
+    city: user?.city || "Mumbai",
+    address: user?.address || "Bandra West, Mumbai",
+    medicalNotes: user?.medicalNotes || ""
   });
   const [isDownloading, setIsDownloading] = useState(false);
   const [refNo] = useState(() => Math.floor(Math.random() * 1000000).toString().padStart(6, '0'));
@@ -72,7 +73,7 @@ export default function StickerPage() {
     `Blood: ${formData.blood}`,
     `City: ${formData.city}`,
     `Guardian: ${formData.guardian}`,
-    `Med History: ${formData.medHistory || 'None'}`
+    `Medical Notes: ${formData.medicalNotes || 'None'}`
   ];
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrDataArr.join('\n'))}`;
 
@@ -117,8 +118,8 @@ export default function StickerPage() {
               <div className="space-y-1">
                 <label className="text-[0.55rem] font-black text-bh-gray-dark uppercase tracking-widest ml-1">Medical History (Optional)</label>
                 <textarea 
-                  name="medHistory" 
-                  value={formData.medHistory || ""} 
+                  name="medicalNotes" 
+                  value={formData.medicalNotes || ""} 
                   onChange={handleChange} 
                   placeholder="Allergies, previous surgeries, or conditions..."
                   rows="2"
@@ -210,7 +211,7 @@ export default function StickerPage() {
                        </div>
                        <div className="flex flex-col opacity-80 border-t border-black/5 pt-2">
                           <span className="text-[0.4rem] font-black text-bh-gray-dark uppercase tracking-widest leading-none mb-1">Medical History</span>
-                          <span className="text-[0.55rem] font-bold line-clamp-2">{formData.medHistory || "N/A"}</span>
+                          <span className="text-[0.55rem] font-bold line-clamp-2">{formData.medicalNotes || "N/A"}</span>
                        </div>
                     </div>
                     

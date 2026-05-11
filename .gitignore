@@ -42,3 +42,14 @@ backend/.env
 backend/uploads/
 backend/*.log
 legacy_backup/
+
+.vercel
+
+# Scratch and Temporary Scripts
+apps/web/scratch/
+apps/web/*.ps1
+apps/web/*.js
+!apps/web/src/**/*.js
+test_apis.js
+.gemini/
+

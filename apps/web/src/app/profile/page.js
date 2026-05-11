@@ -12,13 +12,38 @@ export default function Profile() {
   const [formData, setFormData] = useState(() => ({
     name: user?.name || "",
     email: user?.email || "",
+    phone: user?.phone || "",
+    city: user?.city || "",
+    address: user?.address || "",
+    guardianName: user?.guardianName || "",
     bikeModel: user?.bikeModel || "Yamaha MT-15",
     bikeRegNo: user?.bikeRegNo || "MH 02 AB 1234",
     bikeYear: user?.bikeYear || "2024",
     bloodGroup: user?.bloodGroup || "O+",
     allergies: user?.allergies || "None",
-    medHistory: user?.medHistory || "None"
+    medicalNotes: user?.medicalNotes || "None",
+    avatarUrl: user?.avatarUrl || ""
   }));
+
+  const calculateCompletion = () => {
+    const fields = ['name', 'email', 'phone', 'city', 'address', 'guardianName', 'bikeModel', 'bikeRegNo', 'bikeYear', 'bloodGroup', 'allergies', 'medicalNotes'];
+    let filled = 0;
+    fields.forEach(f => {
+      if (formData[f] && formData[f].toString().trim() !== "" && formData[f] !== "None") filled++;
+    });
+    return Math.round((filled / fields.length) * 100);
+  };
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, avatarUrl: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Security Settings States
   const [showSecurity, setShowSecurity] = useState(false);
@@ -90,6 +115,15 @@ export default function Profile() {
 
   const sections = [
     {
+      title: "Personal Details",
+      rows: [
+        { label: "Phone", key: "phone" },
+        { label: "City", key: "city" },
+        { label: "Address", key: "address" },
+        { label: "Emergency Contact", key: "guardianName" }
+      ],
+    },
+    {
       title: "Bike Details",
       rows: [
         { label: "Model", key: "bikeModel" },
@@ -102,7 +136,7 @@ export default function Profile() {
       rows: [
         { label: "Blood Group", key: "bloodGroup" },
         { label: "Allergies", key: "allergies" },
-        { label: "Med History", key: "medHistory" },
+        { label: "Medical Records", key: "medicalNotes" },
       ],
     },
   ];
@@ -132,9 +166,26 @@ export default function Profile() {
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-bh-primary to-transparent opacity-50"></div>
             
             <div className="relative mb-6">
+              {/* Profile Completion Circle */}
+              <svg className="absolute -inset-4 w-[calc(100%+32px)] h-[calc(100%+32px)] -rotate-90 pointer-events-none">
+                <circle cx="50%" cy="50%" r="48%" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
+                <circle cx="50%" cy="50%" r="48%" fill="none" stroke="#FF2E2E" strokeWidth="4" strokeDasharray="300" strokeDashoffset={300 - (300 * calculateCompletion()) / 100} className="transition-all duration-1000" />
+              </svg>
+              <div className="absolute -bottom-4 bg-[#111] border border-[#FF2E2E]/30 text-[#FF2E2E] text-[0.6rem] font-black px-2 py-0.5 rounded-full z-10 left-1/2 -translate-x-1/2 shadow-[0_0_10px_rgba(255,46,46,0.2)]">
+                {calculateCompletion()}%
+              </div>
+
               <div className="absolute inset-0 bg-bh-primary rounded-[2.5rem] blur-[20px] opacity-10 group-hover:opacity-30 transition-opacity"></div>
-              <div className="relative w-24 h-24 rounded-[2.5rem] bg-gradient-to-br from-bh-primary to-[#FF6B6B] flex items-center justify-center text-3xl font-black text-white shadow-2xl overflow-hidden border border-white/10">
-                {formData.name ? formData.name.split(' ').map(n => n[0]).join('') : 'R'}
+              <div className="relative w-24 h-24 rounded-[2.5rem] bg-gradient-to-br from-bh-primary to-[#FF6B6B] flex items-center justify-center text-3xl font-black text-white shadow-2xl overflow-hidden border border-white/10 group-hover:scale-105 transition-transform">
+                {formData.avatarUrl ? (
+                  <img src={formData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  formData.name ? formData.name.split(' ').map(n => n[0]).join('') : 'R'
+                )}
+                <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-xs font-bold uppercase tracking-widest text-white backdrop-blur-sm">
+                  Upload
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                </label>
               </div>
             </div>
             

@@ -104,7 +104,7 @@ export default function Dashboard() {
   const dynamicStats = [
     { label: "Total Rides",   icon: "🚵", value: user.totalRides || "42" },
     { label: "Safety Score",  icon: "🛡️", value: user.safetyScore || "98%" },
-    { label: "Health Vault",  icon: "🏥", value: user.medHistory ? "Complete" : "Optional" },
+    { label: "Health Vault",  icon: "🏥", value: user.medicalNotes ? "Complete" : "Optional" },
     { label: "Reward Points", icon: "🔥", value: rewardPoints.toLocaleString(), subtext: `Value: ₹${rewardRupees}` },
   ];
 

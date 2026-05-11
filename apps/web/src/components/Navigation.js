@@ -39,7 +39,7 @@ export default function Navigation() {
           {navLinks.map((link) => (
             <Link
               key={link.name}
-              href={link.path}
+              href={user || link.path === "/" || link.path === "/store" ? link.path : "/login"}
               className={`text-sm font-medium py-2 relative transition-colors hover:text-white ${
                 pathname === link.path ? "text-white" : "text-[#B0B0B0]"
               }`}
@@ -90,21 +90,21 @@ export default function Navigation() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[72px] bg-[#0A0A0A]/95 backdrop-blur-3xl border-t border-white/5 flex items-center justify-around z-50 pb-[env(safe-area-inset-bottom,0)] px-2">
 
         {/* Panel */}
-        <MobileNavItem href="/dashboard" label="Panel" active={pathname === "/dashboard"}>
+        <MobileNavItem href={user ? "/dashboard" : "/login"} label="Panel" active={pathname === "/dashboard"}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
           </svg>
         </MobileNavItem>
 
         {/* Vault */}
-        <MobileNavItem href="/documents" label="Vault" active={pathname === "/documents"}>
+        <MobileNavItem href={user ? "/documents" : "/login"} label="Vault" active={pathname === "/documents"}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
           </svg>
         </MobileNavItem>
 
         {/* SOS Center Button */}
-        <Link href="/sos" className="relative z-20 -mt-8 flex flex-col items-center group">
+        <Link href={user ? "/sos" : "/login"} className="relative z-20 -mt-8 flex flex-col items-center group">
           <div className="w-14 h-14 rounded-full bg-[#FF2E2E] flex items-center justify-center shadow-[0_0_30px_rgba(255,46,46,0.45)] transition-all group-active:scale-90 animate-[sosPulse_3s_ease-in-out_infinite]">
             <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
               <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -121,7 +121,7 @@ export default function Navigation() {
             </svg>
           </MobileNavItem>
         ) : (
-          <MobileNavItem href="/community" label="Rides" active={pathname === "/community"}>
+          <MobileNavItem href={user ? "/community" : "/login"} label="Rides" active={pathname === "/community"}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
               <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
@@ -130,7 +130,7 @@ export default function Navigation() {
         )}
 
         {/* Profile */}
-        <MobileNavItem href="/profile" label="Me" active={pathname === "/profile"}>
+        <MobileNavItem href={user ? "/profile" : "/login"} label="Me" active={pathname === "/profile"}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
           </svg>

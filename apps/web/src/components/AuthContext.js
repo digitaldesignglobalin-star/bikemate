@@ -105,10 +105,10 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const login = async (email, password) => {
+  const login = async (phoneOrEmail, password) => {
     try {
       // Offline Admin Bypass Mode
-      if (email === "admin@bikemate.com" && password === "admin123") {
+      if (phoneOrEmail === "admin@bikemate.com" && password === "admin123") {
         const mockAdmin = { 
           id: "admin-1", 
           name: "Bikemate Master Admin", 
@@ -121,13 +121,32 @@ export function AuthProvider({ children }) {
         router.push("/admin/dashboard");
         return;
       }
-      // Simulate failure for others expecting backend
-      throw new Error({ response: { data: { error: "Invalid credentials. Offline mode only supports Admin." } } });
+      
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: phoneOrEmail, password })
+      });
+      
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || "Login failed");
+      }
+      
+      const { token, user: backendUser } = data;
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(backendUser));
+      localStorage.setItem("isPremium", backendUser.subscriptionActive ? "true" : "false");
+      
+      setIsPremium(backendUser.subscriptionActive);
+      setUser(backendUser);
+      router.push("/dashboard");
+      return { token, user: backendUser };
     } catch (err) {
-      if (err.response?.status === 403 && err.response?.data?.useOTP) {
+      if (err.message.includes("No password set")) {
          throw new Error("OTP_REQUIRED");
       }
-      throw new Error(err.response?.data?.error || "Login failed - Invalid offline credentials");
+      throw err;
     }
   };
 
@@ -151,10 +170,37 @@ export function AuthProvider({ children }) {
     localStorage.setItem("isPremium", "true");
   };
 
-  const updateUser = (newData) => {
-    const updatedUser = { ...user, ...newData };
-    localStorage.setItem("user", JSON.stringify(updatedUser));
-    setUser(updatedUser);
+  const updateUser = async (newData) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token && token !== "mock-admin-jwt-token") {
+        const response = await fetch("/api/user/profile", {
+          method: "PUT",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(newData)
+        });
+        const data = await response.json();
+        if (data.success) {
+          const updatedUser = { ...user, ...data.user };
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          setUser(updatedUser);
+          return { success: true };
+        }
+        throw new Error(data.error);
+      } else {
+        // Fallback for offline mode / mock admin
+        const updatedUser = { ...user, ...newData };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        return { success: true };
+      }
+    } catch (err) {
+      console.error("Update profile error:", err);
+      return { success: false, error: err.message };
+    }
   };
 
   return (
