@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int      @id @default(autoincrement())
+  email             String   @unique
+  name              String
+  password          String
+  phone             String?
+  city              String?
+  address           String?
+  role              Role     @default(USER)
+  otpCode           String?
+  otpExpiry         DateTime?
+  bloodGroup        String?
+  avatarUrl         String?
+  avatarPath        String?
+  guardianName      String?
+  allergies         String?
+  medicalNotes      String?
+  bikeModel         String?
+  bikeRegNo         String?
+  bikeYear          Int?
+  isVolunteer       Boolean  @default(false)
+  volunteerLat      Float?
+  volunteerLng      Float?
+  volunteerUpdatedAt DateTime?
+  
+  isLive            Boolean  @default(false)
+  liveLat           Float?
+  liveLng           Float?
+  liveUpdatedAt     DateTime?
+  
+  subscriptionActive Boolean  @default(false)
+  subscriptionPlan   String?   @default("none")
+  subscriptionDays   Int      @default(0)
+  subscriptionStart  DateTime?
+  subscriptionEnd    DateTime?
+
+  orders            Order[]
+  ridesCreated      Ride[]     @relation("CreatedRides")
+  ridesJoined       Ride[]     @relation("JoinedRides")
+  documents         Document[]
+  sosEvents         SOS[]
+  payments          Payment[]
+  productsCreated   Product[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Order {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  items       Json     // Simplified storage of line items
+  giftWrap    Boolean  @default(false)
+  giftMessage String?
+  subtotal    Float
+  total       Float
+  status      OrderStatus @default(PENDING)
+  address     String?
+  payments    Payment[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  description String?
+  category    ProductCategory @default(OTHER)
+  tags        String?  
+  price       Float
+  mrp         Float?
+  gstPercent  Float    @default(18)
+  stock       Int      @default(0)
+  trackStock  Boolean  @default(true)
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  images      Json     
+  variants    Json     
+  
+  createdBy   Int?
+  creator     User?    @relation(fields: [createdBy], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Ride {
+  id              Int      @id @default(autoincrement())
+  title           String
+  creatorId       Int
+  creator         User     @relation("CreatedRides", fields: [creatorId], references: [id])
+  startLocation   String
+  endLocation     String
+  date            DateTime
+  time            String
+  estimatedCost   Float    @default(0)
+  description     String?
+  maxParticipants Int      @default(50)
+  isActive        Boolean  @default(true)
+  
+  participants    User[]   @relation("JoinedRides")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Document {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+  type            DocumentType
+  label           String?
+  fileUrl         String
+  filePath        String
+  mimeType        String?
+  fileSizeKB      Int?
+  issueDate       DateTime?
+  expiryDate      DateTime?
+  status          DocumentStatus @default(VALID)
+  documentNumber  String?
+  notes           String?
+  isVerified      Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SOS {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  lat         Float
+  lng         Float
+  message     String   @default("Emergency SOS triggered")
+  resolved    Boolean  @default(false)
+  resolvedAt  DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Payment {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  user              User     @relation(fields: [userId], references: [id])
+  orderId           Int?
+  order             Order?    @relation(fields: [orderId], references: [id])
+  
+  razorpayOrderId   String   @unique
+  razorpayPaymentId String?
+  razorpaySignature String?
+  
+  amount            Int      
+  currency          String   @default("INR")
+  purpose           PaymentPurpose @default(STORE_ORDER)
+  description       String?
+  status            PaymentStatus @default(CREATED)
+  rawPayload        Json?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum ProductCategory {
+  APPAREL
+  ACCESSORIES
+  SAFETY
+  STICKER
+  OTHER
+}
+
+enum DocumentType {
+  DRIVING_LICENCE
+  VEHICLE_RC
+  INSURANCE
+  PUC
+  POLLUTION_CERTIFICATE
+  AADHAR
+  PAN
+  PASSPORT
+  FITNESS_CERTIFICATE
+  MEDICAL_RECORD
+  OTHER
+}
+
+enum DocumentStatus {
+  VALID
+  EXPIRING_SOON
+  EXPIRED
+}
+
+enum PaymentPurpose {
+  STORE_ORDER
+  SUBSCRIPTION
+  STICKER_ORDER
+  OTHER
+}
+
+enum PaymentStatus {
+  CREATED
+  PAID
+  FAILED
+  REFUNDED
+}
