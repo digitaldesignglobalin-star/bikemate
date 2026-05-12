@@ -15,24 +15,26 @@ export default function SOSPage() {
     
     try {
       // Real API call to trigger SOS
-      await api.post("/sos/trigger", {
+      await api.post("/sos", {
         location: { lat: 19.0760, lng: 72.8777 }, // Mocked coordinates
         message: `Emergency SOS triggered by ${user?.name || 'Rider'}`
       });
       
       setStatus("success");
       
-      // Auto call family person
+      // Auto call primary emergency contact within 5 seconds
       setTimeout(() => {
-        window.location.href = "tel:+919876543210"; // Family member's phone number
-      }, 300);
+        window.location.href = "tel:+917980132406"; 
+      }, 5000);
 
-      // Open SMS intent to share live location
+      // Open SMS intent to share live location to both numbers
       setTimeout(() => {
-        window.open(`sms:?body=EMERGENCY! I need help. Live location: https://maps.google.com/?q=19.0760,72.8777`);
+        // Fallback mocked location if actual location isn't provided
+        const locUrl = `https://maps.google.com/?q=19.0760,72.8777`;
+        window.open(`sms:+917980132406,+918420600137?body=EMERGENCY! I need help. Live location: ${locUrl}`);
       }, 1500);
 
-      setTimeout(() => setStatus("idle"), 5000);
+      setTimeout(() => setStatus("idle"), 8000);
     } catch (err) {
       console.error(err);
       setStatus("error");
@@ -43,8 +45,8 @@ export default function SOSPage() {
   };
 
   const contacts = [
-    { name: "Rahul Kumar (Family)", phone: "+91 98765 43210", initials: "RK" },
-    { name: "Priya Sharma", phone: "+91 91234 56789", initials: "PS" },
+    { name: "Emergency Primary", phone: "+91 79801 32406", initials: "E1" },
+    { name: "Emergency Secondary", phone: "+91 84206 00137", initials: "E2" },
     { name: "Ambulance", phone: "108", initials: "108", special: true },
     { name: "Police Station", phone: "100", initials: "100", special: true },
   ];

@@ -22,6 +22,9 @@ model User {
   avatarUrl         String?
   avatarPath        String?
   guardianName      String?
+  emergencyContact1 String?
+  emergencyContact2 String?
+  gender            String?
   allergies         String?
   medicalNotes      String?
   bikeModel         String?

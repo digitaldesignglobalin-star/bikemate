@@ -20,6 +20,10 @@ export default function Profile() {
     bikeRegNo: user?.bikeRegNo || "MH 02 AB 1234",
     bikeYear: user?.bikeYear || "2024",
     bloodGroup: user?.bloodGroup || "O+",
+    gender: user?.gender || "",
+    emergencyContact1: user?.emergencyContact1 || "",
+    emergencyContact2: user?.emergencyContact2 || "",
+    isVolunteer: user?.isVolunteer || false,
     allergies: user?.allergies || "None",
     medicalNotes: user?.medicalNotes || "None",
     avatarUrl: user?.avatarUrl || ""
@@ -78,6 +82,10 @@ export default function Profile() {
         bikeRegNo: user.bikeRegNo || prev.bikeRegNo,
         bikeYear: user.bikeYear || prev.bikeYear,
         bloodGroup: user.bloodGroup || prev.bloodGroup,
+        gender: user.gender || prev.gender,
+        emergencyContact1: user.emergencyContact1 || prev.emergencyContact1,
+        emergencyContact2: user.emergencyContact2 || prev.emergencyContact2,
+        isVolunteer: user.isVolunteer !== undefined ? user.isVolunteer : prev.isVolunteer,
         allergies: user.allergies || prev.allergies,
         medicalNotes: user.medicalNotes || prev.medicalNotes,
         avatarUrl: user.avatarUrl || prev.avatarUrl
@@ -120,7 +128,9 @@ export default function Profile() {
         { label: "Phone", key: "phone" },
         { label: "City", key: "city" },
         { label: "Address", key: "address" },
-        { label: "Emergency Contact", key: "guardianName" }
+        { label: "Gender", key: "gender" },
+        { label: "Emergency Primary", key: "emergencyContact1" },
+        { label: "Emergency Secondary", key: "emergencyContact2" }
       ],
     },
     {
@@ -139,13 +149,19 @@ export default function Profile() {
         { label: "Medical Records", key: "medicalNotes" },
       ],
     },
+    {
+      title: "Volunteer & Safety",
+      rows: [
+        { label: "Donate Blood (Volunteer)", key: "isVolunteer" },
+      ],
+    },
   ];
 
   const features = [
     { title: "My Subscription", desc: "View & upgrade plan", icon: "💎", color: "text-red-500", bg: "bg-red-500/10", path: "/subscription" },
     { title: "Safety QR Sticker", desc: "Generate digital QR", icon: "🏷️", color: "text-yellow-500", bg: "bg-yellow-500/10", path: "/sticker" },
+    { title: "Women's SOS Program", desc: "Upload ID for Free SOS", icon: "🛡️", color: "text-pink-500", bg: "bg-pink-500/10", path: "/documents" },
     { title: "Live Location", desc: "Sharing settings", icon: "📍", color: "text-blue-500", bg: "bg-blue-500/10", path: "/tracker" },
-    { title: "Document Vault", desc: "Insurance & PUC", icon: "📄", color: "text-green-500", bg: "bg-green-500/10", path: "/documents" },
   ];
 
   if (authLoading || !user) {
@@ -280,13 +296,23 @@ export default function Profile() {
                   <div key={rIdx} className="glass-card p-5 group hover:border-bh-primary/20 transition-all">
                     <div className="flex flex-col gap-2">
                        <span className="text-[0.6rem] font-black text-bh-gray uppercase tracking-widest leading-none">{row.label}</span>
-                       {isEditing ? (
+                       {isEditing && row.key !== 'isVolunteer' ? (
                           <input 
                             name={row.key}
                             value={formData[row.key]}
                             onChange={handleChange}
                             className="bg-transparent border-b border-white/10 w-full py-1 text-sm text-white font-black focus:border-bh-primary outline-none transition-all"
                           />
+                       ) : isEditing && row.key === 'isVolunteer' ? (
+                          <input 
+                            name="isVolunteer"
+                            type="checkbox"
+                            checked={formData.isVolunteer}
+                            onChange={(e) => setFormData({...formData, isVolunteer: e.target.checked})}
+                            className="w-4 h-4 accent-bh-primary"
+                          />
+                       ) : row.key === 'isVolunteer' ? (
+                          <span className="text-sm text-white font-black group-hover:text-bh-primary transition-colors">{formData.isVolunteer ? "Yes" : "No"}</span>
                        ) : (
                           <span className="text-sm text-white font-black group-hover:text-bh-primary transition-colors">{formData[row.key]}</span>
                        )}

@@ -114,7 +114,7 @@ export default function TrackerPage() {
     setSosTriggered(true);
     setShowCountdown(false);
     try {
-      await api.post("/sos/trigger", {
+      await api.post("/sos", {
         location: coords,
         message: "AI GUARDIAN: Emergency detected via GPS stop.",
       });

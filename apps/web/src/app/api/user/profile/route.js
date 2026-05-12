@@ -37,6 +37,10 @@ export async function GET(req) {
         address: user.address,
         guardianName: user.guardianName,
         bloodGroup: user.bloodGroup,
+        gender: user.gender,
+        emergencyContact1: user.emergencyContact1,
+        emergencyContact2: user.emergencyContact2,
+        isVolunteer: user.isVolunteer,
         allergies: user.allergies,
         medicalNotes: user.medicalNotes,
         bikeModel: user.bikeModel,
@@ -69,8 +73,7 @@ export async function PUT(req) {
 
     const data = await req.json();
 
-    // Prevent updating restricted fields
-    const allowedFields = ['name', 'email', 'phone', 'city', 'address', 'bloodGroup', 'guardianName', 'allergies', 'medicalNotes', 'bikeModel', 'bikeRegNo', 'bikeYear', 'avatarUrl', 'password'];
+    const allowedFields = ['name', 'email', 'phone', 'city', 'address', 'bloodGroup', 'guardianName', 'gender', 'emergencyContact1', 'emergencyContact2', 'isVolunteer', 'allergies', 'medicalNotes', 'bikeModel', 'bikeRegNo', 'bikeYear', 'avatarUrl', 'password'];
     
     const updateData = {};
     for (const key of allowedFields) {
@@ -105,6 +108,10 @@ export async function PUT(req) {
         address: user.address,
         guardianName: user.guardianName,
         bloodGroup: user.bloodGroup,
+        gender: user.gender,
+        emergencyContact1: user.emergencyContact1,
+        emergencyContact2: user.emergencyContact2,
+        isVolunteer: user.isVolunteer,
         allergies: user.allergies,
         medicalNotes: user.medicalNotes,
         bikeModel: user.bikeModel,
