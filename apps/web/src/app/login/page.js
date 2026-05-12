@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../components/AuthContext";
 
@@ -12,12 +12,8 @@ export default function LoginPage() {
   const [step, setStep] = useState(1); // 1 = Phone, 2 = OTP, 3 = Admin Password
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, requestOTP, verifyOTP, setupRecaptcha } = useAuth();
-
-  useEffect(() => {
-    // Setup reCAPTCHA when the component mounts
-    setupRecaptcha("recaptcha-container");
-  }, [setupRecaptcha]);
+  const { login, requestOTP, verifyOTP } = useAuth();
+  // Note: reCAPTCHA is initialized fresh inside requestOTP() — no need to call setupRecaptcha here
 
   const handleRequestOTP = async (e) => {
     e.preventDefault();

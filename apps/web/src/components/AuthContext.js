@@ -42,27 +42,54 @@ export function AuthProvider({ children }) {
   }, []);
 
   const setupRecaptcha = (containerId) => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
-        size: 'invisible',
-        callback: (response) => {
-          // reCAPTCHA solved
-        }
-      });
+    // Always clear stale verifier so it can be re-initialized fresh
+    if (window.recaptchaVerifier) {
+      try { window.recaptchaVerifier.clear(); } catch (_) {}
+      window.recaptchaVerifier = null;
     }
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+      size: 'invisible',
+      callback: () => {},
+      'expired-callback': () => {
+        // Reset verifier so next attempt gets a fresh one
+        window.recaptchaVerifier = null;
+      }
+    });
+  };
+
+  const getReadableFirebaseError = (err) => {
+    const code = err.code || '';
+    if (code === 'auth/invalid-phone-number') return 'Invalid phone number. Please enter a valid 10-digit Indian number.';
+    if (code === 'auth/too-many-requests') return 'Too many OTP requests. Please wait a few minutes and try again.';
+    if (code === 'auth/quota-exceeded') return 'OTP quota exceeded. Please try again later.';
+    if (code === 'auth/captcha-check-failed') return 'reCAPTCHA check failed. Please refresh the page and try again.';
+    if (code === 'auth/missing-phone-number') return 'Please enter your mobile number.';
+    if (code === 'auth/invalid-app-credential') return 'Firebase configuration error. Contact support.';
+    if (code === 'auth/code-expired') return 'OTP has expired. Please request a new code.';
+    if (code === 'auth/invalid-verification-code') return 'Incorrect OTP. Please check and try again.';
+    return err.message || 'Something went wrong. Please try again.';
   };
 
   const requestOTP = async (phoneNumber) => {
     try {
       // Ensure phone has country code. Defaulting to India +91 if none provided.
       const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+      
+      // Always set up a fresh reCAPTCHA verifier before each request
+      setupRecaptcha('recaptcha-container');
       const appVerifier = window.recaptchaVerifier;
+      
       const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       window.confirmationResult = confirmationResult;
       return { success: true };
     } catch (err) {
-      console.error(err);
-      throw new Error(err.message || "Failed to send OTP. Please try again.");
+      console.error('OTP send error:', err);
+      // Reset the verifier so next attempt starts fresh
+      if (window.recaptchaVerifier) {
+        try { window.recaptchaVerifier.clear(); } catch (_) {}
+        window.recaptchaVerifier = null;
+      }
+      throw new Error(getReadableFirebaseError(err));
     }
   };
 
@@ -76,12 +103,13 @@ export function AuthProvider({ children }) {
       const result = await confirmationResult.confirm(otp);
       const fbUser = result.user;
       
-      // Sync with our new Vercel backend
+      // Sync with our Vercel backend
+      const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
       const response = await fetch("/api/auth/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: phoneNumber,
+          phone: formattedPhone,
           firebaseUid: fbUser.uid
         })
       });
@@ -95,13 +123,16 @@ export function AuthProvider({ children }) {
       localStorage.setItem("user", JSON.stringify(backendUser));
       localStorage.setItem("isPremium", backendUser.subscriptionActive ? "true" : "false");
       
+      // Clear OTP session after successful verification
+      window.confirmationResult = null;
+      
       setIsPremium(backendUser.subscriptionActive);
       setUser(backendUser);
       router.push("/dashboard");
       return { token, user: backendUser };
     } catch (err) {
-      console.error(err);
-      throw new Error(err.message || "Invalid OTP code");
+      console.error('OTP verify error:', err);
+      throw new Error(getReadableFirebaseError(err));
     }
   };
 
