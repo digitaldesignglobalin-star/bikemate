@@ -144,6 +144,24 @@ export default function Dashboard() {
           <p className="text-sm text-[#B0B0B0] mt-4 max-w-sm leading-relaxed">
             {festival ? wish : "Your machine is primed. Ready for a session? Stay safe on every road."}
           </p>
+
+          <div className="flex flex-wrap gap-2 mt-6">
+            {user.isVolunteer && (
+              <div className="flex items-center gap-2 bg-emerald-400/10 border border-emerald-400/20 px-3 py-1 rounded-full">
+                <span className="text-[0.6rem] font-black text-emerald-400 uppercase tracking-widest">🩸 Blood Donor Mesh</span>
+              </div>
+            )}
+            {user.subscriptionActive && (
+              <div className="flex items-center gap-2 bg-bh-primary/10 border border-bh-primary/20 px-3 py-1 rounded-full">
+                <span className="text-[0.6rem] font-black text-bh-primary uppercase tracking-widest">🛡️ Safety Certified</span>
+              </div>
+            )}
+            {user.gender?.toLowerCase() === "female" && !user.subscriptionActive && (
+              <div className="flex items-center gap-2 bg-pink-500/10 border border-pink-500/20 px-3 py-1 rounded-full">
+                <span className="text-[0.6rem] font-black text-pink-500 uppercase tracking-widest">🛡️ Women's Free SOS Available</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── Weather Intel Widget ── */}
