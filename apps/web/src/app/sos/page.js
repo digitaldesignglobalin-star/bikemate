@@ -7,6 +7,7 @@ import { api } from "../../utils/api";
 export default function SOSPage() {
   const [isActivating, setIsActivating] = useState(false);
   const [status, setStatus] = useState("idle"); // idle, sending, success, error
+  const [errorMsg, setErrorMsg] = useState("");
   const { user } = useAuth();
 
   const handleSOS = async () => {
@@ -38,7 +39,8 @@ export default function SOSPage() {
     } catch (err) {
       console.error(err);
       setStatus("error");
-      setTimeout(() => setStatus("idle"), 3000);
+      setErrorMsg(err.message || "Failed to connect to SOS server");
+      setTimeout(() => setStatus("idle"), 6000);
     } finally {
       setIsActivating(false);
     }
@@ -104,10 +106,14 @@ export default function SOSPage() {
           </button>
         </div>
         
-        <div className="mt-8 min-h-[24px]">
           {status === "sending" && <p className="text-bh-primary font-bold text-sm animate-pulse uppercase tracking-[0.2em]">Locating responders...</p>}
           {status === "success" && <p className="text-bh-green font-bold text-sm uppercase tracking-[0.2em]">Help is on the way!</p>}
-          {status === "error" && <p className="text-bh-red font-bold text-sm uppercase tracking-[0.2em]">System busy. Try calling below.</p>}
+          {status === "error" && (
+            <div className="space-y-2">
+              <p className="text-bh-red font-bold text-sm uppercase tracking-[0.2em]">System busy. Try calling below.</p>
+              <p className="text-[0.6rem] text-bh-gray italic">{errorMsg}</p>
+            </div>
+          )}
         </div>
       </div>
 
