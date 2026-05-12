@@ -66,22 +66,22 @@ export default function Profile() {
 
   useEffect(() => {
     if (user) {
-      const t = setTimeout(() => {
-        setFormData(prev => {
-          if (prev.name) return prev;
-          return {
-            name: user.name || "",
-            email: user.email || "",
-            bikeModel: user.bikeModel || "Yamaha MT-15",
-            bikeRegNo: user.bikeRegNo || "MH 02 AB 1234",
-            bikeYear: user.bikeYear || "2024",
-            bloodGroup: user.bloodGroup || "O+",
-            allergies: user.allergies || "None",
-            medHistory: user.medHistory || "None"
-          };
-        });
-      }, 0);
-      return () => clearTimeout(t);
+      setFormData(prev => ({
+        ...prev,
+        name: user.name || prev.name,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+        city: user.city || prev.city,
+        address: user.address || prev.address,
+        guardianName: user.guardianName || prev.guardianName,
+        bikeModel: user.bikeModel || prev.bikeModel,
+        bikeRegNo: user.bikeRegNo || prev.bikeRegNo,
+        bikeYear: user.bikeYear || prev.bikeYear,
+        bloodGroup: user.bloodGroup || prev.bloodGroup,
+        allergies: user.allergies || prev.allergies,
+        medicalNotes: user.medicalNotes || prev.medicalNotes,
+        avatarUrl: user.avatarUrl || prev.avatarUrl
+      }));
     }
   }, [user]);
 

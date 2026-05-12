@@ -214,6 +214,49 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      
+      {/* ── Profile Completion Prompt ── */}
+      {(() => {
+        const fields = ['name', 'email', 'phone', 'city', 'address', 'guardianName', 'bikeModel', 'bikeRegNo', 'bikeYear', 'bloodGroup', 'medicalNotes'];
+        let filled = 0;
+        fields.forEach(f => {
+          if (user[f] && user[f].toString().trim() !== "" && user[f] !== "None" && user[f] !== "Verified Rider") filled++;
+        });
+        const completion = Math.round((filled / fields.length) * 100);
+        
+        if (completion < 100) {
+          return (
+            <div className="mb-12 relative group">
+              <div className="absolute inset-0 bg-bh-primary/10 rounded-[2rem] blur-2xl opacity-50 group-hover:opacity-100 transition-opacity" />
+              <div className="relative bg-[#111] border border-bh-primary/20 p-8 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-8 overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-bh-primary/5 rounded-full -mr-16 -mt-16 blur-3xl" />
+                
+                <div className="flex-1 flex flex-col md:flex-row items-center gap-6">
+                  <div className="relative w-20 h-20 shrink-0">
+                    <svg className="absolute inset-0 w-full h-full -rotate-90">
+                      <circle cx="50%" cy="50%" r="36" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
+                      <circle cx="50%" cy="50%" r="36" fill="none" stroke="#FF2E2E" strokeWidth="4" strokeDasharray="226" strokeDashoffset={226 - (226 * completion) / 100} className="transition-all duration-1000" />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-white">{completion}%</div>
+                  </div>
+                  
+                  <div className="text-center md:text-left">
+                    <h4 className="text-xl font-black font-heading tracking-tight mb-1">Rider Profile Incomplete</h4>
+                    <p className="text-sm text-bh-gray-dark font-medium max-w-sm">
+                      Complete your safety dossier to unlock Smart Stickers, SOS tracking, and medical vault features.
+                    </p>
+                  </div>
+                </div>
+                
+                <Link href="/profile" className="btn btn-primary px-8 py-4 shadow-glow-red shrink-0 font-black uppercase tracking-widest text-xs">
+                  Complete Profile Now
+                </Link>
+              </div>
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* ── Stats ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">

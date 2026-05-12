@@ -35,7 +35,25 @@ export function AuthProvider({ children }) {
         setIsPremium(false);
         return;
       }
-      setLoading(false);
+
+      try {
+        const response = await fetch("/api/user/profile", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setUser(data.user);
+          setIsPremium(data.user.subscriptionActive);
+          localStorage.setItem("user", JSON.stringify(data.user));
+          localStorage.setItem("isPremium", data.user.subscriptionActive ? "true" : "false");
+        } else if (data.error === "Invalid Token" || data.error === "Unauthorized") {
+          logout();
+        }
+      } catch (err) {
+        console.error("Profile sync error:", err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     checkUser();

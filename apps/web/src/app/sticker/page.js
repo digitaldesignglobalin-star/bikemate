@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { jsPDF } from "jspdf";
+import { toPng } from "html-to-image";
 import { useAuth } from "../../components/AuthContext";
 import { useRouter } from "next/navigation";
 
@@ -21,6 +22,20 @@ export default function StickerPage() {
   });
   const [isDownloading, setIsDownloading] = useState(false);
   const [refNo] = useState(() => Math.floor(Math.random() * 1000000).toString().padStart(6, '0'));
+  
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        guardian: user.guardianName || "",
+        contact: user.phone || "",
+        blood: user.bloodGroup || "O+",
+        city: user.city || "",
+        address: user.address || "",
+        medicalNotes: user.medicalNotes || ""
+      });
+    }
+  }, [user]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
