@@ -87,7 +87,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <div id="recaptcha-container"></div>
+            <div id="recaptcha-container" className="absolute bottom-4 right-4 z-50"></div>
 
             {step === 1 && (
               <>
