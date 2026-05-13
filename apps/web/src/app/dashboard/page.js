@@ -6,6 +6,7 @@ import { useAuth } from "../../components/AuthContext";
 import { useState, useEffect } from "react";
 import { useLocation } from "../../hooks/useLocation";
 import { useWeather } from "../../hooks/useWeather";
+import StickerCTA from "../../components/StickerCTA";
 
 const HEALTH_TIPS = [
   { title: "Hydrate: Drink 500 ml electrolytes every 50 km.", icon: "🥤" },
@@ -299,6 +300,10 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+      {/* QR Sticker CTA */}
+      <div className="mt-12">
+        <StickerCTA variant="banner" />
+      </div>
     </div>
   );
 }

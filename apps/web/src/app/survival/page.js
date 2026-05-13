@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "../../components/AuthContext";
+import StickerCTA from "../../components/StickerCTA";
 
 export default function SurvivalKit() {
   const { user } = useAuth();
@@ -111,6 +112,10 @@ export default function SurvivalKit() {
          <p className="text-xs text-[#B0B0B0] max-w-sm mx-auto leading-relaxed">
            Even if you are outside 4G/5G coverage, dialing generic SOS defaults directly to your device local satellite mesh or carrier fallback. Do not panic.
          </p>
+      </div>
+      {/* QR Sticker CTA */}
+      <div className="mt-8">
+        <StickerCTA variant="banner" />
       </div>
     </div>
   );

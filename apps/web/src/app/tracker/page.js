@@ -5,6 +5,7 @@ import { useAuth } from "../../components/AuthContext";
 import { useLocation } from "../../hooks/useLocation";
 import { api } from "../../utils/api";
 import PremiumOverlay from "../../components/PremiumOverlay";
+import StickerCTA from "../../components/StickerCTA";
 
 export default function TrackerPage() {
   const { user, isPremium } = useAuth();
@@ -382,6 +383,10 @@ export default function TrackerPage() {
            </div>
         </div>
       )}
+      {/* QR Sticker CTA */}
+      <div className="mt-8">
+        <StickerCTA variant="compact" />
+      </div>
     </div>
   );
 }

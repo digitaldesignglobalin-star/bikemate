@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "../../components/AuthContext";
+import StickerCTA from "../../components/StickerCTA";
 
 export default function GaragePage() {
   const { user } = useAuth();
@@ -281,6 +282,10 @@ export default function GaragePage() {
               </div>
            </div>
         </div>
+      </div>
+      {/* QR Sticker CTA */}
+      <div className="mt-8">
+        <StickerCTA variant="compact" />
       </div>
     </div>
   );

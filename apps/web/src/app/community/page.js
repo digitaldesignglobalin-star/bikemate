@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "../../components/AuthContext";
+import PremiumOverlay from "../../components/PremiumOverlay";
+import StickerCTA from "../../components/StickerCTA";
 import { useLocation } from "../../hooks/useLocation";
 import { useWeather } from "../../hooks/useWeather";
 
@@ -490,6 +492,11 @@ export default function CommunityPage() {
         .input-field:focus { border-color: #FF2E2E; }
         .input-field::placeholder { color: #333; }
       `}</style>
+
+      {/* QR Sticker CTA */}
+      <div className="mt-12">
+        <StickerCTA variant="banner" />
+      </div>
     </div>
   );
 }

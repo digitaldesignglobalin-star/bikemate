@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "../../components/AuthContext";
 import { useLocation } from "../../hooks/useLocation";
+import StickerCTA from "../../components/StickerCTA";
 
 export default function ConvoyPage() {
   const { user } = useAuth();
@@ -126,6 +127,10 @@ export default function ConvoyPage() {
            </div>
         </div>
       )}
+      {/* QR Sticker CTA */}
+      <div className="mt-8">
+        <StickerCTA variant="compact" />
+      </div>
     </div>
   );
 }

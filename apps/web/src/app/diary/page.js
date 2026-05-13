@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../components/AuthContext";
 import PremiumOverlay from "../../components/PremiumOverlay";
+import StickerCTA from "../../components/StickerCTA";
 
 export default function DiaryPage() {
   const { isPremium } = useAuth();
@@ -162,6 +163,10 @@ export default function DiaryPage() {
              </div>
           </div>
         </div>
+      </div>
+      {/* QR Sticker CTA */}
+      <div className="mt-8">
+        <StickerCTA variant="compact" />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../components/AuthContext";
 import { api } from "../../utils/api";
+import StickerCTA from "../../components/StickerCTA";
 
 export default function SOSPage() {
   const [isActivating, setIsActivating] = useState(false);
@@ -254,6 +255,11 @@ export default function SOSPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* QR Sticker CTA */}
+      <div className="mt-12 w-full">
+        <StickerCTA variant="banner" />
       </div>
 
       <style jsx>{`
