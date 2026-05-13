@@ -12,12 +12,12 @@ export default function StickerPage() {
   const stickerRef = useRef(null);
   const { user, isPremium } = useAuth();
   const [formData, setFormData] = useState({
-    name: user?.name || "Ashish Ganguly",
-    guardian: user?.guardianName || "Radha Raman Ganguly",
-    contact: user?.phone || "+91 98765 43210",
+    name: user?.name || "",
+    guardian: user?.guardianName || "",
+    contact: user?.phone || "",
     blood: user?.bloodGroup || "O+",
-    city: user?.city || "Mumbai",
-    address: user?.address || "Bandra West, Mumbai",
+    city: user?.city || "",
+    address: user?.address || "",
     medicalNotes: user?.medicalNotes || ""
   });
   const [isDownloading, setIsDownloading] = useState(false);
@@ -147,15 +147,15 @@ export default function StickerPage() {
           <div className="relative p-[1px] rounded-2xl bg-gradient-to-br from-bh-primary to-transparent overflow-hidden shadow-2xl">
              <div className="bg-[#121212] p-6 rounded-2xl">
                 <div className="flex justify-between items-start mb-4">
-                   <h3 className="text-lg font-black font-heading tracking-tight">Sticker + Goodies Pack</h3>
+                   <h3 className="text-lg font-black font-heading tracking-tight">Physical Sticker Pack</h3>
                    <span className="text-bh-green text-[0.5rem] font-black uppercase tracking-widest bg-bh-green/10 px-2 py-1 rounded">Best Seller</span>
                 </div>
-                <p className="text-bh-gray text-[0.65rem] mb-6 leading-relaxed italic opacity-80">&quot;Premium waterproof helmet sticker + Bikemate member keyring &amp; lanyard.&quot;</p>
+                <p className="text-bh-gray text-[0.65rem] mb-6 leading-relaxed italic opacity-80">&quot;2x Premium waterproof QR helmet stickers + Surprise Gift Box.&quot;</p>
                 <div className="flex items-end gap-2 mb-6">
-                   <span className="text-3xl font-black italic">₹399</span>
+                   <span className="text-3xl font-black italic">₹429</span>
                    <span className="text-[0.65rem] text-bh-green font-black uppercase tracking-widest pb-1">Free Home Delivery</span>
                 </div>
-                <button onClick={() => router.push('/checkout?type=sticker')} className="btn btn-primary btn-full py-4 font-black uppercase tracking-widest text-[0.65rem]">Order Bundle Now</button>
+                <button onClick={() => router.push('/checkout?type=sticker')} className="btn btn-primary btn-full py-4 font-black uppercase tracking-widest text-[0.65rem]">Order Sticker Pack</button>
              </div>
           </div>
 

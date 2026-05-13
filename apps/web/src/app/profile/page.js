@@ -16,16 +16,16 @@ export default function Profile() {
     city: user?.city || "",
     address: user?.address || "",
     guardianName: user?.guardianName || "",
-    bikeModel: user?.bikeModel || "Yamaha MT-15",
-    bikeRegNo: user?.bikeRegNo || "MH 02 AB 1234",
-    bikeYear: user?.bikeYear || "2024",
+    bikeModel: user?.bikeModel || "",
+    bikeRegNo: user?.bikeRegNo || "",
+    bikeYear: user?.bikeYear || "",
     bloodGroup: user?.bloodGroup || "O+",
     gender: user?.gender || "",
     emergencyContact1: user?.emergencyContact1 || "",
     emergencyContact2: user?.emergencyContact2 || "",
     isVolunteer: user?.isVolunteer || false,
-    allergies: user?.allergies || "None",
-    medicalNotes: user?.medicalNotes || "None",
+    allergies: user?.allergies || "",
+    medicalNotes: user?.medicalNotes || "",
     avatarUrl: user?.avatarUrl || ""
   }));
 
@@ -97,28 +97,65 @@ export default function Profile() {
   const handleSave = () => { updateUser(formData); setIsEditing(false); };
 
   // --- Security Functions ---
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
     if (!newEmail.includes("@")) return setSecurityMsg({ type: "error", text: "Invalid email" });
-    setOtpSent(true);
-    setSecurityMsg({ type: "success", text: "OTP sent to " + newEmail });
-  };
-
-  const handleVerifyOtp = () => {
-    if (emailOtp === "123456") {
-      updateUser({ email: newEmail });
-      setFormData(prev => ({ ...prev, email: newEmail }));
-      setSecurityMsg({ type: "success", text: "Email updated successfully!" });
-      setTimeout(() => { setShowSecurity(false); setOtpSent(false); }, 2000);
-    } else {
-      setSecurityMsg({ type: "error", text: "Invalid OTP. Use 123456" });
+    try {
+      const res = await fetch("/api/user/send-email-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newEmail })
+      });
+      if (res.ok) {
+        setOtpSent(true);
+        setSecurityMsg({ type: "success", text: "OTP sent to " + newEmail });
+      } else {
+        setSecurityMsg({ type: "error", text: "Email service temporarily unavailable. Contact support." });
+      }
+    } catch {
+      setSecurityMsg({ type: "error", text: "Email service temporarily unavailable. Contact support." });
     }
   };
 
-  const handlePasswordChange = () => {
+  const handleVerifyOtp = async () => {
+    if (emailOtp.length !== 6) return setSecurityMsg({ type: "error", text: "Enter a valid 6-digit OTP" });
+    try {
+      const res = await fetch("/api/user/verify-email-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newEmail, otp: emailOtp })
+      });
+      if (res.ok) {
+        updateUser({ email: newEmail });
+        setFormData(prev => ({ ...prev, email: newEmail }));
+        setSecurityMsg({ type: "success", text: "Email updated successfully!" });
+        setTimeout(() => { setShowSecurity(false); setOtpSent(false); }, 2000);
+      } else {
+        setSecurityMsg({ type: "error", text: "Invalid OTP. Please try again." });
+      }
+    } catch {
+      setSecurityMsg({ type: "error", text: "Verification failed. Try again later." });
+    }
+  };
+
+  const handlePasswordChange = async () => {
     if (passwords.new !== passwords.confirm) return setSecurityMsg({ type: "error", text: "Passwords don't match" });
-    if (passwords.new.length < 6) return setSecurityMsg({ type: "error", text: "Password too short" });
-    setSecurityMsg({ type: "success", text: "Password updated successfully!" });
-    setTimeout(() => { setShowSecurity(false); setPasswords({ current: "", new: "", confirm: "" }); }, 2000);
+    if (passwords.new.length < 6) return setSecurityMsg({ type: "error", text: "Password must be at least 6 characters" });
+    try {
+      const res = await fetch("/api/user/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: passwords.current, newPassword: passwords.new })
+      });
+      if (res.ok) {
+        setSecurityMsg({ type: "success", text: "Password updated successfully!" });
+        setTimeout(() => { setShowSecurity(false); setPasswords({ current: "", new: "", confirm: "" }); }, 2000);
+      } else {
+        const data = await res.json();
+        setSecurityMsg({ type: "error", text: data.error || "Password update failed" });
+      }
+    } catch {
+      setSecurityMsg({ type: "error", text: "Service temporarily unavailable" });
+    }
   };
 
   const sections = [

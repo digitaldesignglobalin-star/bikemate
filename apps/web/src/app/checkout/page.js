@@ -27,7 +27,7 @@ function CheckoutContent() {
       return { title: "Premium Subscription", amount: parseInt(cost) || 30 };
     }
     if (type === "sticker") {
-      return { title: "Smart Sticker Pack", amount: 399 };
+      return { title: "QR Sticker Pack (2 Stickers + Gift Box)", amount: 429 };
     }
     return { title: "Store Checkout", amount: cartTotal };
   };

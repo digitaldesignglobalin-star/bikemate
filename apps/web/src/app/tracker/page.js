@@ -123,21 +123,26 @@ export default function TrackerPage() {
         message: "AI GUARDIAN: Emergency detected via GPS stop.",
       });
 
-      // 2. Automated SMS & Calling
-      const c1 = user?.emergencyContact1 || "+917980132406";
-      const c2 = user?.emergencyContact2 || "+918420600137";
+      // 2. Auto SMS & Call — guardian contacts from profile only
+      const c1 = user?.emergencyContact1;
+      const c2 = user?.emergencyContact2;
+      const contacts = [c1, c2].filter(Boolean);
       const locUrl = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
       
-      // SMS Intent
-      setTimeout(() => {
-        const smsBody = encodeURIComponent(`EMERGENCY! AI Guardian detected a sudden stop. My location: ${locUrl}`);
-        window.open(`sms:${c1},${c2}?body=${smsBody}`);
-      }, 1500);
+      if (contacts.length > 0) {
+        // SMS Intent to guardians
+        setTimeout(() => {
+          const smsBody = encodeURIComponent(`EMERGENCY! AI Guardian detected a sudden stop. My location: ${locUrl}`);
+          window.open(`sms:${contacts.join(",")}?body=${smsBody}`);
+        }, 1500);
 
-      // Automated Call
-      setTimeout(() => {
-        window.location.href = `tel:${c1}`;
-      }, 5000);
+        // Auto-call primary guardian
+        if (c1) {
+          setTimeout(() => {
+            window.location.href = `tel:${c1}`;
+          }, 5000);
+        }
+      }
 
     } catch (e) {
       console.warn("[Tracker] SOS trigger:", e.message);

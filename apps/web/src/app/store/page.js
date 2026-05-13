@@ -15,36 +15,27 @@ export default function StorePage() {
 
   useEffect(() => {
     const fetchProducts = async () => {
-      const STATIC_PRODUCTS = [
-        { id: "tshirt-1",   name: "Rider Essential Tee",    price: 699,  img: "/assets/images/tshirt.png",  category: "Apparel" },
-        { id: "keyring-1",  name: "Moto Carbon Keyring",    price: 249,  img: "/assets/images/keyring.png", category: "Accessories" },
-        { id: "lanyard-1",  name: "Bikemate Pro Lanyard",   price: 199,  img: "/assets/images/lanyard.png", category: "Accessories" },
-        { id: "goodies-1",  name: "Full Rider Goodies Box", price: 999,  img: "/assets/images/goodies.png", category: "Bundles" },
-      ];
-
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3000); // 3-second timeout
-
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
         const res = await fetch("/api/products", { signal: controller.signal });
         clearTimeout(timeout);
         const data = await res.json();
-        if (data.success && data.products.length > 0) {
+        if (data.success && data.products?.length > 0) {
           const formatted = data.products.map(p => ({
             id: p.id.toString(),
             name: p.name,
             price: p.price,
-            img: p.images?.[0] || "/assets/images/tshirt.png",
-            category: p.category
+            mrp: p.mrp || null,
+            img: p.images?.[0] || "/assets/images/goodies.png",
+            category: p.category,
+            description: p.description || "",
+            stock: p.stock
           }));
           setProducts(formatted);
-        } else {
-          setProducts(STATIC_PRODUCTS);
         }
-      } catch (error) {
-        clearTimeout(timeout);
-        // Backend offline or timed out — use static catalog
-        setProducts(STATIC_PRODUCTS);
+      } catch {
+        // API unavailable — show empty catalog
       }
       setIsLoading(false);
     };
@@ -72,37 +63,114 @@ export default function StorePage() {
         </button>
       </div>
 
+      {/* ── Featured Product: QR Sticker Pack ── */}
+      <div className="mb-12">
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#FF2E2E]/10 to-transparent border border-[#FF2E2E]/20 rounded-[2.5rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 group hover:border-[#FF2E2E]/40 transition-all">
+          <div className="absolute top-0 right-0 opacity-5 pointer-events-none text-[12rem] leading-none">🏷️</div>
+          <div className="flex-1 z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#FF2E2E]/10 border border-[#FF2E2E]/20 rounded-full text-[0.65rem] font-black text-[#FF2E2E] uppercase tracking-[0.2em] mb-4">
+              ⭐ Featured Product
+            </div>
+            <h2 className="text-2xl md:text-3xl font-black font-heading tracking-tight mb-3">QR Safety Sticker Pack</h2>
+            <p className="text-[#B0B0B0] text-sm leading-relaxed mb-4 max-w-md">
+              2x Premium waterproof QR helmet stickers with your emergency info + a Surprise Gift Box. Scannable by any phone — no app needed.
+            </p>
+            <div className="flex items-end gap-3 mb-6">
+              <span className="text-4xl font-black text-white">₹429</span>
+              <span className="text-sm text-bh-green font-black uppercase tracking-widest pb-1">Free Delivery</span>
+            </div>
+            <div className="flex gap-3 flex-wrap">
+              <button 
+                onClick={() => router.push('/sticker')}
+                className="btn btn-primary px-8 py-4 font-black uppercase tracking-widest text-xs shadow-glow-red"
+              >
+                Customize & Order
+              </button>
+              <button 
+                onClick={() => addToCart({ id: "sticker-pack", name: "QR Sticker Pack (2 Stickers + Gift Box)", price: 429, img: "/assets/images/goodies.png", category: "Safety" })}
+                className="btn btn-outline border-white/10 px-8 py-4 font-black uppercase tracking-widest text-xs hover:bg-white/5"
+              >
+                Quick Add to Cart
+              </button>
+            </div>
+          </div>
+          <div className="w-48 h-48 md:w-56 md:h-56 relative shrink-0 rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-[#0A0A0A]">
+            <Image src="/assets/images/goodies.png" alt="QR Sticker Pack" fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Products from API ── */}
       {isLoading ? (
-         <div className="text-bh-gray text-center w-full py-10 font-bold uppercase tracking-widest text-xs">Loading Catalog...</div>
-      ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {products.map((product) => (
-            <div key={product.id} className="group flex flex-col h-full">
-              <div className="relative aspect-[4/5] rounded-[2rem] bg-bh-card border border-white/5 overflow-hidden mb-6 transition-all duration-500 group-hover:border-bh-primary/30 group-hover:shadow-[0_20px_40px_-15px_rgba(255,46,46,0.1)]">
-                <Image 
-                  src={product.img} 
-                  alt={product.name} 
-                  fill 
-                  className="object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                <div className="absolute top-4 left-4">
-                   <span className="px-3 py-1 glass-nav rounded-full text-[10px] font-black uppercase tracking-widest text-white/60">{product.category}</span>
-                </div>
-              </div>
-              
-              <div className="px-2 flex-1 flex flex-col">
-                <h3 className="text-lg font-black font-heading tracking-tight mb-1 group-hover:text-bh-primary transition-colors">{product.name}</h3>
-                <div className="text-xl font-black text-white mb-6">₹{product.price}</div>
-                
-                <button 
-                  onClick={() => addToCart(product)}
-                  className="btn btn-outline btn-full group-hover:bg-bh-primary group-hover:border-bh-primary group-hover:text-white transition-all py-4"
-                >
-                  Add to Cart
-                </button>
-              </div>
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex flex-col h-full">
+              <div className="aspect-[4/5] rounded-[2rem] bg-white/[0.03] animate-pulse border border-white/5 mb-6"></div>
+              <div className="h-4 bg-white/[0.03] rounded-lg mb-2 animate-pulse"></div>
+              <div className="h-6 bg-white/[0.03] rounded-lg w-1/3 animate-pulse"></div>
             </div>
           ))}
+        </div>
+      ) : products.length > 0 ? (
+        <>
+          <div className="flex items-center gap-3 mb-8">
+            <span className="w-8 h-[2px] bg-[#FF2E2E] rounded-full" />
+            <h3 className="text-[0.7rem] font-black text-[#444] uppercase tracking-[0.3em]">All Products</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {products.map((product) => (
+              <div key={product.id} className="group flex flex-col h-full">
+                <div className="relative aspect-[4/5] rounded-[2rem] bg-bh-card border border-white/5 overflow-hidden mb-6 transition-all duration-500 group-hover:border-bh-primary/30 group-hover:shadow-[0_20px_40px_-15px_rgba(255,46,46,0.1)]">
+                  <Image 
+                    src={product.img} 
+                    alt={product.name} 
+                    fill 
+                    className="object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                  <div className="absolute top-4 left-4">
+                     <span className="px-3 py-1 glass-nav rounded-full text-[10px] font-black uppercase tracking-widest text-white/60">{product.category}</span>
+                  </div>
+                  {product.stock !== undefined && product.stock <= 5 && product.stock > 0 && (
+                    <div className="absolute bottom-4 left-4">
+                      <span className="px-3 py-1 bg-yellow-400/20 border border-yellow-400/30 rounded-full text-[10px] font-black text-yellow-400 uppercase tracking-widest">Only {product.stock} left</span>
+                    </div>
+                  )}
+                  {product.stock === 0 && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <span className="text-sm font-black text-white uppercase tracking-widest">Out of Stock</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="px-2 flex-1 flex flex-col">
+                  <h3 className="text-lg font-black font-heading tracking-tight mb-1 group-hover:text-bh-primary transition-colors">{product.name}</h3>
+                  <div className="flex items-center gap-2 mb-6">
+                    <span className="text-xl font-black text-white">₹{product.price}</span>
+                    {product.mrp && product.mrp > product.price && (
+                      <span className="text-sm text-[#555] line-through font-bold">₹{product.mrp}</span>
+                    )}
+                  </div>
+                  
+                  <button 
+                    onClick={() => addToCart(product)}
+                    disabled={product.stock === 0}
+                    className="btn btn-outline btn-full group-hover:bg-bh-primary group-hover:border-bh-primary group-hover:text-white transition-all py-4 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    {product.stock === 0 ? "Sold Out" : "Add to Cart"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        /* Empty state — no products from API yet */
+        <div className="text-center py-16">
+          <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-6">🏍️</div>
+          <h3 className="text-xl font-black text-white mb-2">More Products Coming Soon</h3>
+          <p className="text-sm text-[#555] max-w-sm mx-auto leading-relaxed">
+            We&apos;re curating premium rider gear. Check back soon for new drops!
+          </p>
         </div>
       )}
 

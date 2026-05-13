@@ -24,13 +24,24 @@ export default function SOSPage() {
       setStatus("error");
       return;
     }
+
+    // Validate that user has emergency contacts set
+    const c1 = user?.emergencyContact1;
+    const c2 = user?.emergencyContact2;
+
+    if (!c1 && !c2) {
+      setErrorMsg("Please add emergency contacts in your Profile first.");
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 5000);
+      return;
+    }
     
     setIsActivating(true);
     setStatus("sending");
     setErrorMsg("");
 
     try {
-      // 1. Get real location if possible
+      // 1. Get real location
       let location = { lat: 19.0760, lng: 72.8777 }; // Default fallback
       try {
         const pos = await new Promise((resolve, reject) => {
@@ -45,7 +56,7 @@ export default function SOSPage() {
         console.warn("Geolocation failed, using fallback:", locErr.message);
       }
       
-      // 2. Real API call to trigger SOS in backend
+      // 2. Backend SOS notification
       await api.post("/sos", {
         location,
         message: `EMERGENCY! SOS triggered by ${user?.name || 'Rider'}. Phone: ${user?.phone || 'N/A'}`
@@ -53,22 +64,21 @@ export default function SOSPage() {
       
       setStatus("success");
       
-      // 3. Automated SMS Location Sharing
-      // Get contacts from user profile or fallback
-      const c1 = user?.emergencyContact1 || "+917980132406";
-      const c2 = user?.emergencyContact2 || "+918420600137";
+      // 3. Auto SMS to guardian contacts ONLY (not police/ambulance)
       const locUrl = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
+      const contacts = [c1, c2].filter(Boolean);
       
       setTimeout(() => {
-        // Multi-contact SMS intent
-        const smsBody = encodeURIComponent(`EMERGENCY! I need help. My live location: ${locUrl}`);
-        window.open(`sms:${c1},${c2}?body=${smsBody}`);
+        const smsBody = encodeURIComponent(`EMERGENCY! I need help urgently. My live location: ${locUrl}`);
+        window.open(`sms:${contacts.join(",")}?body=${smsBody}`);
       }, 1500);
 
-      // 4. Automated Calling (Primary Contact)
-      setTimeout(() => {
-        window.location.href = `tel:${c1}`; 
-      }, 5000);
+      // 4. Auto-dial primary guardian contact (NOT police/ambulance)
+      if (c1) {
+        setTimeout(() => {
+          window.location.href = `tel:${c1}`;
+        }, 5000);
+      }
 
       setTimeout(() => setStatus("idle"), 15000);
     } catch (err) {
@@ -81,11 +91,26 @@ export default function SOSPage() {
     }
   };
 
-  const contacts = [
-    { name: user?.guardianName || "Emergency Primary", phone: user?.emergencyContact1 || "+91 79801 32406", initials: "E1" },
-    { name: "Emergency Secondary", phone: user?.emergencyContact2 || "+91 84206 00137", initials: "E2" },
+  // Build contact list from user profile — guardians auto-dial, services manual-only
+  const guardianContacts = [
+    user?.emergencyContact1 && { 
+      name: user?.guardianName || "Guardian 1", 
+      phone: user.emergencyContact1, 
+      initials: (user?.guardianName || "G1").slice(0, 2).toUpperCase(),
+      autoDial: true
+    },
+    user?.emergencyContact2 && { 
+      name: "Guardian 2", 
+      phone: user.emergencyContact2, 
+      initials: "G2",
+      autoDial: true
+    },
+  ].filter(Boolean);
+
+  const serviceContacts = [
     { name: "Ambulance", phone: "108", initials: "108", special: true },
-    { name: "Police Station", phone: "100", initials: "100", special: true },
+    { name: "Police", phone: "100", initials: "100", special: true },
+    { name: "Women Helpline", phone: "181", initials: "181", special: true },
   ];
 
   return (
@@ -93,14 +118,26 @@ export default function SOSPage() {
       <div className="mb-12">
         <h2 className="text-4xl font-black font-heading tracking-tight mb-4">Emergency SOS</h2>
         <p className="text-bh-gray text-base mx-auto max-w-xs leading-relaxed">
-          Tap the button below to instantly alert your family and local responders.
+          Tap the button below to instantly alert your guardians with your GPS location.
         </p>
       </div>
 
-      {/* SOS Button UX Overhaul */}
+      {/* No contacts warning */}
+      {user && !user.emergencyContact1 && !user.emergencyContact2 && (
+        <div className="mb-8 px-5 py-4 bg-yellow-400/10 border border-yellow-400/20 rounded-2xl flex items-center gap-3 text-left">
+          <span className="text-xl shrink-0">⚠️</span>
+          <div>
+            <p className="text-sm font-bold text-yellow-400 mb-1">No Emergency Contacts Set</p>
+            <p className="text-xs text-[#999]">
+              Go to <a href="/profile" className="text-yellow-400 underline font-bold">Profile</a> and add your emergency contacts before using SOS.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* SOS Button */}
       <div className="flex flex-col items-center justify-center mb-20">
         <div className="relative">
-          {/* Animated Background Ripples */}
           {status === "sending" || status === "success" ? (
             <div className="absolute inset-0 scale-[2.5]">
               <div className="absolute inset-0 rounded-full border-[2px] border-bh-primary animate-[ripple_2s_infinite] opacity-30"></div>
@@ -141,29 +178,63 @@ export default function SOSPage() {
           </button>
         </div>
         
-          {status === "sending" && <p className="text-bh-primary font-bold text-sm animate-pulse uppercase tracking-[0.2em]">Locating responders...</p>}
-          {status === "success" && <p className="text-bh-green font-bold text-sm uppercase tracking-[0.2em]">Help is on the way!</p>}
+          {status === "sending" && <p className="text-bh-primary font-bold text-sm animate-pulse uppercase tracking-[0.2em]">Locating & alerting guardians...</p>}
+          {status === "success" && <p className="text-bh-green font-bold text-sm uppercase tracking-[0.2em]">Guardians alerted! Auto-calling primary...</p>}
           {status === "error" && (
             <div className="space-y-2">
-              <p className="text-bh-red font-bold text-sm uppercase tracking-[0.2em]">System busy. Try calling below.</p>
-              <p className="text-[0.6rem] text-bh-gray italic">{errorMsg}</p>
+              <p className="text-bh-red font-bold text-sm uppercase tracking-[0.2em]">{errorMsg || "System busy. Try calling below."}</p>
             </div>
           )}
       </div>
 
+      {/* Guardian Contacts (auto-dial) */}
       <div className="text-left w-full space-y-8">
+        {guardianContacts.length > 0 && (
+          <>
+            <div className="flex items-center gap-4">
+               <h4 className="text-xs font-black text-bh-gray-dark uppercase tracking-[0.3em] flex-1">Your Guardians (Auto-Dial)</h4>
+               <div className="h-[1px] bg-white/5 flex-1"></div>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              {guardianContacts.map((contact, i) => (
+                <div key={i} className="group relative">
+                  <div className="relative flex items-center justify-between p-5 glass-card border-none bg-[#FF2E2E]/[0.05] hover:bg-[#FF2E2E]/[0.08] transition-colors border-l-4 border-l-[#FF2E2E]/30">
+                     <div className="flex items-center gap-5">
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-sm bg-[#FF2E2E]/10 text-[#FF2E2E]">
+                          {contact.initials}
+                        </div>
+                        <div>
+                          <div className="font-bold text-white text-[1rem] leading-tight">{contact.name}</div>
+                          <div className="text-xs text-bh-gray mt-1">{contact.phone}</div>
+                        </div>
+                     </div>
+                     <button 
+                       className="w-12 h-12 rounded-full flex items-center justify-center text-bh-gray hover:text-white hover:bg-bh-primary transition-all border border-white/5 shadow-2xl"
+                       onClick={() => window.open(`tel:${contact.phone}`)}
+                     >
+                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                         <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                       </svg>
+                     </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        
+        {/* Emergency Services (manual dial only) */}
         <div className="flex items-center gap-4">
-           <h4 className="text-xs font-black text-bh-gray-dark uppercase tracking-[0.3em] flex-1">Emergency Contacts</h4>
+           <h4 className="text-xs font-black text-bh-gray-dark uppercase tracking-[0.3em] flex-1">Emergency Services</h4>
            <div className="h-[1px] bg-white/5 flex-1"></div>
         </div>
         
         <div className="grid grid-cols-1 gap-4">
-          {contacts.map((contact, i) => (
+          {serviceContacts.map((contact, i) => (
             <div key={i} className="group relative">
-              <div className="absolute inset-0 bg-white/[0.02] rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <div className="relative flex items-center justify-between p-5 glass-card border-none bg-white/[0.03] hover:bg-white/[0.06] transition-colors">
                  <div className="flex items-center gap-5">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-sm ${contact.special ? 'bg-bh-green/10 text-bh-green' : 'bg-bh-gray-darker text-bh-gray'}`}>
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-sm bg-bh-green/10 text-bh-green">
                       {contact.initials}
                     </div>
                     <div>

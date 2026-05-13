@@ -96,10 +96,10 @@ export default function Navigation() {
           </svg>
         </MobileNavItem>
 
-        {/* Vault */}
-        <MobileNavItem href={user ? "/documents" : "/login"} label="Vault" active={pathname === "/documents"}>
+        {/* Store */}
+        <MobileNavItem href="/store" label="Store" active={pathname === "/store"}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
           </svg>
         </MobileNavItem>
 
@@ -113,7 +113,7 @@ export default function Navigation() {
           <span className="mt-1 text-[7px] font-black text-[#FF2E2E] uppercase tracking-[0.2em] opacity-80">SOS</span>
         </Link>
 
-        {/* Community or Admin */}
+        {/* Community / Admin */}
         {user?.role === "ADMIN" ? (
           <MobileNavItem href="/admin/products" label="Admin" active={pathname.startsWith("/admin")}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
