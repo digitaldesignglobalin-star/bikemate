@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { jsPDF } from "jspdf";
-import { toPng } from "html-to-image";
+import html2canvas from "html2canvas";
 import QRCode from "qrcode";
 import { useAuth } from "../../components/AuthContext";
 import { useRouter } from "next/navigation";
@@ -76,7 +76,7 @@ export default function StickerPage() {
       return false;
     }
     if (!stickerRef.current) {
-      alert("Sticker not ready. Please wait a moment.");
+      alert("Sticker preview not ready.");
       return false;
     }
     return true;
@@ -86,13 +86,15 @@ export default function StickerPage() {
     if (!validate()) return;
     setIsDownloading(true);
     try {
-      const quality = isPremium ? 4 : 2;
-      const dataUrl = await toPng(stickerRef.current, { 
-        cacheBust: true,
-        pixelRatio: quality,
-        backgroundColor: '#ffffff',
-        skipFonts: true,
+      const scale = isPremium ? 4 : 2;
+      const canvas = await html2canvas(stickerRef.current, {
+        scale: scale,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
       });
+      
+      const dataUrl = canvas.toDataURL("image/png");
       const link = document.createElement('a');
       link.download = `bikemet-sticker-${formData.name.replace(/\s+/g, '-').toLowerCase()}.png`;
       link.href = dataUrl;
@@ -101,7 +103,7 @@ export default function StickerPage() {
       document.body.removeChild(link);
     } catch (err) {
       console.error('PNG download failed:', err);
-      alert('PNG download failed. Please try again.');
+      alert('Download failed. Please try again or use a different browser.');
     } finally {
       setIsDownloading(false);
     }
@@ -111,18 +113,21 @@ export default function StickerPage() {
     if (!validate()) return;
     setIsDownloading(true);
     try {
-      const quality = isPremium ? 4 : 2;
-      const dataUrl = await toPng(stickerRef.current, { 
-        pixelRatio: quality,
-        backgroundColor: '#ffffff',
-        skipFonts: true,
+      const scale = isPremium ? 4 : 2;
+      const canvas = await html2canvas(stickerRef.current, {
+        scale: scale,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
       });
+      
+      const dataUrl = canvas.toDataURL("image/png");
       const pdf = new jsPDF('l', 'mm', [100, 50]);
       pdf.addImage(dataUrl, 'PNG', 0, 0, 100, 50);
       pdf.save(`bikemet-sticker-${formData.name.replace(/\s+/g, '-').toLowerCase()}.pdf`);
     } catch (err) {
       console.error('PDF download failed:', err);
-      alert('PDF download failed. Please try again.');
+      alert('PDF export failed. Please try again.');
     } finally {
       setIsDownloading(false);
     }
