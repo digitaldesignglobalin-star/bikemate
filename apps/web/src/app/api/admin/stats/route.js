@@ -22,41 +22,46 @@ export async function GET(req) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const memberCount = await prisma.user.count();
-    const newToday = await prisma.user.count({
-      where: {
-        createdAt: {
-          gte: new Date(new Date().setHours(0, 0, 0, 0))
-        }
-      }
-    });
+    // Run ALL queries in parallel instead of sequentially — massive speedup
+    const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
 
-    const orders = await prisma.order.findMany();
+    const [
+      memberCount,
+      newToday,
+      orders,
+      recentOrders,
+      recentUsers
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({
+        where: { createdAt: { gte: todayStart } }
+      }),
+      prisma.order.findMany({
+        select: { status: true, total: true }
+      }),
+      prisma.order.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { name: true } }
+        }
+      }),
+      prisma.user.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          role: true,
+          createdAt: true
+        }
+      })
+    ]);
+
     const successOrders = orders.filter(o => o.status === 'DELIVERED' || o.status === 'SHIPPED' || o.status === 'CONFIRMED');
     const pendingOrders = orders.filter(o => o.status === 'PENDING');
-    const revenue = successOrders.reduce((acc, o) => acc + o.total, 0);
-
-    const recentOrders = await prisma.order.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: {
-          select: { name: true }
-        }
-      }
-    });
-
-    const recentUsers = await prisma.user.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        role: true,
-        createdAt: true
-      }
-    });
+    const revenue = successOrders.reduce((acc, o) => acc + (o.total || 0), 0);
 
     return NextResponse.json({
       success: true,
@@ -67,8 +72,8 @@ export async function GET(req) {
         successOrders: successOrders.length,
         pendingOrders: pendingOrders.length,
         revenue: revenue,
-        freeStickers: 0, // Not tracked in DB yet
-        paidStickers: 0  // Not tracked in DB yet
+        freeStickers: 0,
+        paidStickers: 0
       },
       recentOrders: recentOrders.map(o => ({
         id: o.id.toString(),

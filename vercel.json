@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "apps/web/src/app/api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["bom1"]
+}
