@@ -4,58 +4,98 @@ import Image from "next/image";
 import AdminShell from "../../../components/AdminShell";
 
 export default function AdminProductsPage() {
-  const [products,    setProducts]    = useState(() => {
-    if (typeof window === "undefined") return [];
-    try { return JSON.parse(localStorage.getItem("bm_products") || "[]"); } catch { return []; }
-  });
-  const [isLoading,   setIsLoading]   = useState(true);
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData,    setFormData]    = useState({
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
     name: "", category: "APPAREL", price: "", mrp: "", stock: "100",
     description: "", imageUrl: "/assets/images/tshirt.png", variants: "[]",
   });
 
   const fetchProducts = async () => {
-    const controller = new AbortController();
-    const timeout    = setTimeout(() => controller.abort(), 4000);
     try {
-      const res  = await fetch("/api/products", { signal: controller.signal });
-      clearTimeout(timeout);
+      const res = await fetch("/api/products");
       const data = await res.json();
-      if (data.success) { setProducts(data.products); }
-    } catch { clearTimeout(timeout); }
+      if (data.success && data.products) {
+        setProducts(data.products);
+      }
+    } catch (err) {
+      console.error("Products fetch error:", err);
+    }
     setIsLoading(false);
   };
 
   useEffect(() => {
-    const t = setTimeout(() => fetchProducts(), 0);
-    return () => clearTimeout(t);
+    fetchProducts();
   }, []);
 
   const handleInput = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleAdd = (e) => {
+  const handleAdd = async (e) => {
     e.preventDefault();
-    const p = {
-      id: Date.now(),
-      ...formData,
-      price: parseFloat(formData.price),
-      mrp:   formData.mrp ? parseFloat(formData.mrp) : null,
-      stock: parseInt(formData.stock),
-      images: [formData.imageUrl],
-    };
-    const updated = [p, ...products];
-    setProducts(updated);
-    localStorage.setItem("bm_products", JSON.stringify(updated));
-    setIsModalOpen(false);
-    setFormData({ name:"",category:"APPAREL",price:"",mrp:"",stock:"100",description:"",imageUrl:"/assets/images/tshirt.png",variants:"[]" });
+    setSaving(true);
+    try {
+      const token = localStorage.getItem("token");
+      const payload = {
+        name: formData.name,
+        category: formData.category,
+        price: parseFloat(formData.price),
+        mrp: formData.mrp ? parseFloat(formData.mrp) : null,
+        stock: parseInt(formData.stock),
+        description: formData.description,
+        images: [formData.imageUrl],
+        variants: formData.variants,
+      };
+
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProducts([data.product, ...products]);
+        setIsModalOpen(false);
+        setFormData({ name:"",category:"APPAREL",price:"",mrp:"",stock:"100",description:"",imageUrl:"/assets/images/tshirt.png",variants:"[]" });
+      } else {
+        alert(data.error || "Failed to add product");
+      }
+    } catch (err) {
+      // Fallback: save locally if API not ready
+      const p = {
+        id: Date.now(),
+        name: formData.name,
+        category: formData.category,
+        price: parseFloat(formData.price),
+        mrp: formData.mrp ? parseFloat(formData.mrp) : null,
+        stock: parseInt(formData.stock),
+        description: formData.description,
+        images: [formData.imageUrl],
+      };
+      setProducts([p, ...products]);
+      setIsModalOpen(false);
+      setFormData({ name:"",category:"APPAREL",price:"",mrp:"",stock:"100",description:"",imageUrl:"/assets/images/tshirt.png",variants:"[]" });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!confirm("Delete this product?")) return;
-    const updated = products.filter(p => p.id !== id);
-    setProducts(updated);
-    localStorage.setItem("bm_products", JSON.stringify(updated));
+    try {
+      const token = localStorage.getItem("token");
+      await fetch(`/api/products?id=${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (err) {
+      console.error("Delete error:", err);
+    }
+    setProducts(products.filter(p => p.id !== id));
   };
 
   return (
@@ -138,7 +178,7 @@ export default function AdminProductsPage() {
                   <label className="block text-[0.6rem] font-black text-[#444] uppercase tracking-widest mb-1.5">Category</label>
                   <select name="category" value={formData.category} onChange={handleInput}
                     className="w-full bg-[#0D0D0D] border border-white/10 p-3 rounded-xl text-white outline-none focus:border-[#FF2E2E]">
-                    {["APPAREL","ACCESSORIES","SAFETY","STICKER","BUNDLES","OTHER"].map(c => (
+                    {["APPAREL","ACCESSORIES","SAFETY","STICKER","OTHER"].map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
@@ -174,7 +214,9 @@ export default function AdminProductsPage() {
                     className="w-full bg-[#0D0D0D] border border-white/10 p-3 rounded-xl text-white outline-none focus:border-[#FF2E2E] font-mono text-xs transition-colors resize-none" />
                 </div>
               </div>
-              <button type="submit" className="btn btn-primary btn-full mt-4">Save to Database</button>
+              <button type="submit" disabled={saving} className="btn btn-primary btn-full mt-4 disabled:opacity-50">
+                {saving ? "Saving..." : "Save to Database"}
+              </button>
             </form>
           </div>
         </div>

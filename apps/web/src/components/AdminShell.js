@@ -49,7 +49,7 @@ export default function AdminShell({ children }) {
         localStorage.setItem("bikemate_admin_auth", "true");
         setAuthed(true);
       } else {
-        setPinError("Invalid PIN. Hint: bikemate2026");
+        setPinError("Invalid PIN. Contact the administrator.");
         setPin("");
       }
     };

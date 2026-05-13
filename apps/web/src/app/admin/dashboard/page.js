@@ -9,7 +9,7 @@ function StatCard({ icon, label, value, sub, color = "text-white" }) {
       <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-2xl shrink-0">{icon}</div>
       <div className="flex-1 min-w-0">
         <div className="text-[0.6rem] font-black text-[#444] uppercase tracking-widest mb-1">{label}</div>
-        <div className={`text-3xl font-black font-heading ${color}`}>{value}</div>
+        <div className={`text-3xl font-black font-heading ${color}`}>{value ?? "—"}</div>
         {sub && <div className="text-[0.65rem] text-[#444] mt-1">{sub}</div>}
       </div>
     </div>
@@ -17,13 +17,11 @@ function StatCard({ icon, label, value, sub, color = "text-white" }) {
 }
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({
-    members: 0, newToday: 0, freeStickers: 0, paidStickers: 0,
-    totalOrders: 0, revenue: 0, pendingOrders: 0, successOrders: 0,
-  });
+  const [stats, setStats] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
   const [recentUsers, setRecentUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchStats();
@@ -41,11 +39,14 @@ export default function AdminDashboard() {
       const data = await res.json();
       if (data.success) {
         setStats(data.stats);
-        setRecentOrders(data.recentOrders);
+        setRecentOrders(data.recentOrders || []);
         setRecentUsers(data.recentUsers || []);
+      } else {
+        setError(data.error || "Failed to load dashboard data");
       }
     } catch (err) {
       console.error("Stats fetch error:", err);
+      setError("Unable to connect to the server. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -70,6 +71,32 @@ export default function AdminDashboard() {
     );
   }
 
+  if (error) {
+    return (
+      <AdminShell>
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="bg-[#FF2E2E]/10 border border-[#FF2E2E]/20 p-6 rounded-2xl text-[#FF2E2E] text-center max-w-md">
+            {error}
+          </div>
+          <button onClick={() => { setLoading(true); setError(null); fetchStats(); }}
+            className="text-xs font-black text-[#FF2E2E] uppercase tracking-widest hover:underline">
+            Retry
+          </button>
+        </div>
+      </AdminShell>
+    );
+  }
+
+  const s = stats || {};
+  const members = s.members || 0;
+  const newToday = s.newToday || 0;
+  const freeStickers = s.freeStickers || 0;
+  const paidStickers = s.paidStickers || 0;
+  const totalOrders = s.totalOrders || 0;
+  const successOrders = s.successOrders || 0;
+  const pendingOrders = s.pendingOrders || 0;
+  const revenue = s.revenue || 0;
+
   return (
     <AdminShell>
       {/* Header */}
@@ -80,14 +107,14 @@ export default function AdminDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-10">
-        <StatCard icon="👥" label="Total Members"        value={stats.members.toLocaleString()}  sub={`+${stats.newToday} new today`} color="text-emerald-400" />
-        <StatCard icon="📥" label="New Joins Today"      value={stats.newToday}                  sub="Registered users" color="text-blue-400" />
-        <StatCard icon="🏷️" label="Sticker Downloads"   value={stats.freeStickers + stats.paidStickers} sub={`${stats.freeStickers} free • ${stats.paidStickers} paid`} color="text-yellow-400" />
-        <StatCard icon="🛒" label="Total Orders"         value={stats.totalOrders}               sub={`${stats.successOrders} success • ${stats.pendingOrders} pending`} color="text-[#FF2E2E]" />
-        <StatCard icon="💰" label="Revenue (All Time)"   value={`₹${stats.revenue.toLocaleString()}`} sub="From successful orders" color="text-emerald-400" />
-        <StatCard icon="✅" label="Successful Orders"    value={stats.successOrders}             color="text-emerald-400" />
-        <StatCard icon="⏳" label="Pending Orders"       value={stats.pendingOrders}             color="text-yellow-400" />
-        <StatCard icon="📦" label="Free Sticker DLs"    value={stats.freeStickers}              sub="QR safety stickers" color="text-purple-400" />
+        <StatCard icon="👥" label="Total Members"        value={members.toLocaleString()}  sub={`+${newToday} new today`} color="text-emerald-400" />
+        <StatCard icon="📥" label="New Joins Today"      value={newToday}                  sub="Registered users" color="text-blue-400" />
+        <StatCard icon="🏷️" label="Sticker Downloads"   value={freeStickers + paidStickers} sub={`${freeStickers} free • ${paidStickers} paid`} color="text-yellow-400" />
+        <StatCard icon="🛒" label="Total Orders"         value={totalOrders}               sub={`${successOrders} success • ${pendingOrders} pending`} color="text-[#FF2E2E]" />
+        <StatCard icon="💰" label="Revenue (All Time)"   value={`₹${revenue.toLocaleString()}`} sub="From successful orders" color="text-emerald-400" />
+        <StatCard icon="✅" label="Successful Orders"    value={successOrders}             color="text-emerald-400" />
+        <StatCard icon="⏳" label="Pending Orders"       value={pendingOrders}             color="text-yellow-400" />
+        <StatCard icon="📦" label="Free Sticker DLs"    value={freeStickers}              sub="QR safety stickers" color="text-purple-400" />
       </div>
 
       {/* Recent Activity Grid */}
@@ -156,10 +183,12 @@ export default function AdminDashboard() {
                   {recentUsers.map((u, i) => (
                     <tr key={u.id || i} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
                       <td className="px-4 py-4">
-                        <div className="text-sm font-bold text-white">{u.name}</div>
-                        <div className="text-[0.6rem] text-[#444]">{new Date(u.date).toLocaleDateString()}</div>
+                        <div className="text-sm font-bold text-white">{u.name || "Unnamed"}</div>
+                        <div className="text-[0.6rem] text-[#444]">
+                          {u.date ? new Date(u.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) : "—"}
+                        </div>
                       </td>
-                      <td className="px-4 py-4 text-xs text-[#888] font-mono">{u.phone}</td>
+                      <td className="px-4 py-4 text-xs text-[#888] font-mono">{u.phone || "—"}</td>
                       <td className="px-4 py-4">
                         <span className={`text-[0.6rem] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${u.role === 'ADMIN' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-white/5 text-[#555] border-white/5'}`}>
                           {u.role}
