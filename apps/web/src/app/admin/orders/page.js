@@ -17,20 +17,38 @@ const SEED_ORDERS = [
 ];
 
 export default function AdminOrders() {
-  const [orders,  setOrders]  = useState(() => {
-    if (typeof window === "undefined") return [];
-    const saved = (() => { try { return JSON.parse(localStorage.getItem("bm_orders") || "null"); } catch { return null; } })();
-    const data  = saved && saved.length > 0 ? saved : SEED_ORDERS;
-    if (!saved || saved.length === 0) localStorage.setItem("bm_orders", JSON.stringify(SEED_ORDERS));
-    return data;
-  });
+  const [orders,  setOrders]  = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
   const [filter,  setFilter]  = useState("all");
-  const [editing, setEditing] = useState(null); // order id being edited
+  const [editing, setEditing] = useState(null);
 
-  const updateStatus = (id, newStatus) => {
-    const updated = orders.map(o => o.id === id ? { ...o, status: newStatus } : o);
-    setOrders(updated);
-    localStorage.setItem("bm_orders", JSON.stringify(updated));
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/admin/orders", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrders(data.orders);
+      } else {
+        setError(data.error);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateStatus = async (id, newStatus) => {
+    // For now, we update local state as there's no status update API yet
+    setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
     setEditing(null);
   };
 
@@ -74,10 +92,19 @@ export default function AdminOrders() {
       </div>
 
       {/* Table */}
-      <div className="bg-[#111] border border-white/5 rounded-2xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[700px]">
-            <thead className="bg-white/[0.02] border-b border-white/5">
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <div className="w-10 h-10 rounded-full border-2 border-[#FF2E2E] border-t-transparent animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="bg-[#FF2E2E]/10 border border-[#FF2E2E]/20 p-6 rounded-2xl text-[#FF2E2E] text-center">
+          {error}
+        </div>
+      ) : (
+        <div className="bg-[#111] border border-white/5 rounded-2xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left min-w-[700px]">
+              <thead className="bg-white/[0.02] border-b border-white/5">
               <tr>
                 {["Order ID", "Customer", "Email", "Items", "Amount", "Status", "Date", "Actions"].map(h => (
                   <th key={h} className="px-4 py-3 text-[0.6rem] font-black text-[#444] uppercase tracking-widest whitespace-nowrap">{h}</th>

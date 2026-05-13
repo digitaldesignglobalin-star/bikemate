@@ -10,6 +10,15 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Phone or Email is required' }, { status: 400 });
     }
 
+    // Check if user already exists to check block status
+    let existingUser = await prisma.user.findUnique({
+      where: phone ? { phone: phone } : { email: email }
+    });
+
+    if (existingUser && existingUser.isBlocked) {
+      return NextResponse.json({ error: 'This account has been blocked by the administrator.' }, { status: 403 });
+    }
+
     // Upsert user based on phone or email
     const user = await prisma.user.upsert({
       where: phone ? { phone: phone } : { email: email },
@@ -39,7 +48,8 @@ export async function POST(req) {
         name: user.name,
         phone: user.phone,
         email: user.email,
-        role: user.role
+        role: user.role,
+        subscriptionActive: user.subscriptionActive
       }
     });
   } catch (error) {

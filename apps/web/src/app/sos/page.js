@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "../../components/AuthContext";
 import { api } from "../../utils/api";
 
@@ -8,34 +9,68 @@ export default function SOSPage() {
   const [isActivating, setIsActivating] = useState(false);
   const [status, setStatus] = useState("idle"); // idle, sending, success, error
   const [errorMsg, setErrorMsg] = useState("");
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, authLoading, router]);
 
   const handleSOS = async () => {
+    if (!user) {
+      setErrorMsg("You must be logged in to trigger SOS.");
+      setStatus("error");
+      return;
+    }
+    
     setIsActivating(true);
     setStatus("sending");
-    
+    setErrorMsg("");
+
     try {
-      // Real API call to trigger SOS
+      // 1. Get real location if possible
+      let location = { lat: 19.0760, lng: 72.8777 }; // Default fallback
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { 
+            enableHighAccuracy: true, 
+            timeout: 5000,
+            maximumAge: 0
+          });
+        });
+        location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      } catch (locErr) {
+        console.warn("Geolocation failed, using fallback:", locErr.message);
+      }
+      
+      // 2. Real API call to trigger SOS in backend
       await api.post("/sos", {
-        location: { lat: 19.0760, lng: 72.8777 }, // Mocked coordinates
-        message: `Emergency SOS triggered by ${user?.name || 'Rider'}`
+        location,
+        message: `EMERGENCY! SOS triggered by ${user?.name || 'Rider'}. Phone: ${user?.phone || 'N/A'}`
       });
       
       setStatus("success");
       
-      // Auto call primary emergency contact within 5 seconds
+      // 3. Automated SMS Location Sharing
+      // Get contacts from user profile or fallback
+      const c1 = user?.emergencyContact1 || "+917980132406";
+      const c2 = user?.emergencyContact2 || "+918420600137";
+      const locUrl = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
+      
       setTimeout(() => {
-        window.location.href = "tel:+917980132406"; 
-      }, 5000);
-
-      // Open SMS intent to share live location to both numbers
-      setTimeout(() => {
-        // Fallback mocked location if actual location isn't provided
-        const locUrl = `https://maps.google.com/?q=19.0760,72.8777`;
-        window.open(`sms:+917980132406,+918420600137?body=EMERGENCY! I need help. Live location: ${locUrl}`);
+        // Multi-contact SMS intent
+        const smsBody = encodeURIComponent(`EMERGENCY! I need help. My live location: ${locUrl}`);
+        window.open(`sms:${c1},${c2}?body=${smsBody}`);
       }, 1500);
 
-      setTimeout(() => setStatus("idle"), 8000);
+      // 4. Automated Calling (Primary Contact)
+      setTimeout(() => {
+        window.location.href = `tel:${c1}`; 
+      }, 5000);
+
+      setTimeout(() => setStatus("idle"), 15000);
     } catch (err) {
       console.error(err);
       setStatus("error");
@@ -47,8 +82,8 @@ export default function SOSPage() {
   };
 
   const contacts = [
-    { name: "Emergency Primary", phone: "+91 79801 32406", initials: "E1" },
-    { name: "Emergency Secondary", phone: "+91 84206 00137", initials: "E2" },
+    { name: user?.guardianName || "Emergency Primary", phone: user?.emergencyContact1 || "+91 79801 32406", initials: "E1" },
+    { name: "Emergency Secondary", phone: user?.emergencyContact2 || "+91 84206 00137", initials: "E2" },
     { name: "Ambulance", phone: "108", initials: "108", special: true },
     { name: "Police Station", phone: "100", initials: "100", special: true },
   ];
@@ -114,7 +149,6 @@ export default function SOSPage() {
               <p className="text-[0.6rem] text-bh-gray italic">{errorMsg}</p>
             </div>
           )}
-        </div>
       </div>
 
       <div className="text-left w-full space-y-8">

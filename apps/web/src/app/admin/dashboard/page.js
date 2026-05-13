@@ -1,6 +1,7 @@
 "use client";
 import AdminShell from "../../../components/AdminShell";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 function StatCard({ icon, label, value, sub, color = "text-white" }) {
   return (
@@ -16,54 +17,58 @@ function StatCard({ icon, label, value, sub, color = "text-white" }) {
 }
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState(() => {
-    if (typeof window === "undefined") {
-      return {
-        members: 1247, newToday: 12, freeStickers: 384, paidStickers: 91,
-        totalOrders: 0, revenue: 0, pendingOrders: 0, successOrders: 0,
-      };
-    }
-    const orders = (() => { try { return JSON.parse(localStorage.getItem("bm_orders") || "[]"); } catch { return []; } })();
-    const successO  = orders.filter(o => o.status === "success");
-    const pendingO  = orders.filter(o => o.status === "pending");
-    const revenue   = successO.reduce((s, o) => s + (o.amount || 0), 0);
-    const memberCount  = parseInt(localStorage.getItem("bm_member_count") || "1247");
-    const newToday     = parseInt(localStorage.getItem("bm_new_today")    || "12");
-    const freeStk      = parseInt(localStorage.getItem("sticker_free_dl") || "384");
-    const paidStk      = parseInt(localStorage.getItem("sticker_paid_dl") || "91");
-
-    return {
-      members:       memberCount,
-      newToday:      newToday,
-      freeStickers:  freeStk,
-      paidStickers:  paidStk,
-      totalOrders:   orders.length,
-      revenue:       revenue,
-      pendingOrders: pendingO.length,
-      successOrders: successO.length,
-    };
+  const [stats, setStats] = useState({
+    members: 0, newToday: 0, freeStickers: 0, paidStickers: 0,
+    totalOrders: 0, revenue: 0, pendingOrders: 0, successOrders: 0,
   });
-
-  const [recentOrders, setRecentOrders] = useState(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const orders = JSON.parse(localStorage.getItem("bm_orders") || "[]");
-      return orders.slice(0, 5);
-    } catch {
-      return [];
-    }
-  });
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [recentUsers, setRecentUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Keep this empty or remove if no longer needed. 
-    // In this case, we've moved initial load to state initializers.
+    fetchStats();
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch("/api/admin/stats", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStats(data.stats);
+        setRecentOrders(data.recentOrders);
+        setRecentUsers(data.recentUsers || []);
+      }
+    } catch (err) {
+      console.error("Stats fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const STATUS_STYLES = {
     success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    delivered: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    confirmed: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    shipped: "bg-purple-500/10 text-purple-400 border-purple-500/20",
     pending: "bg-yellow-400/10 text-yellow-400 border-yellow-400/20",
-    trash:   "bg-[#FF2E2E]/10 text-[#FF2E2E] border-[#FF2E2E]/20",
+    cancelled: "bg-[#FF2E2E]/10 text-[#FF2E2E] border-[#FF2E2E]/20",
   };
+
+  if (loading) {
+    return (
+      <AdminShell>
+        <div className="flex justify-center py-20">
+          <div className="w-10 h-10 rounded-full border-2 border-[#FF2E2E] border-t-transparent animate-spin" />
+        </div>
+      </AdminShell>
+    );
+  }
 
   return (
     <AdminShell>
@@ -85,48 +90,88 @@ export default function AdminDashboard() {
         <StatCard icon="📦" label="Free Sticker DLs"    value={stats.freeStickers}              sub="QR safety stickers" color="text-purple-400" />
       </div>
 
-      {/* Recent Orders */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-black text-white">Recent Orders</h2>
-          <a href="/admin/orders" className="text-xs font-black text-[#FF2E2E] uppercase tracking-widest hover:underline">View All →</a>
+      {/* Recent Activity Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Recent Orders */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-black text-white">Recent Orders</h2>
+            <Link href="/admin/orders" className="text-xs font-black text-[#FF2E2E] uppercase tracking-widest hover:underline">View All →</Link>
+          </div>
+
+          {recentOrders.length === 0 ? (
+            <div className="bg-[#111] border border-white/5 rounded-2xl p-10 text-center text-[#444] text-sm font-bold">
+              No orders yet.
+            </div>
+          ) : (
+            <div className="bg-[#111] border border-white/5 rounded-2xl overflow-hidden overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-white/[0.02] border-b border-white/5">
+                  <tr>
+                    {["Customer", "Amount", "Status"].map(h => (
+                      <th key={h} className="px-4 py-3 text-[0.6rem] font-black text-[#444] uppercase tracking-widest">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentOrders.map((o, i) => (
+                    <tr key={o.id || i} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                      <td className="px-4 py-3 text-sm font-bold text-white">{o.customer || "—"}</td>
+                      <td className="px-4 py-3 text-sm font-black text-white">₹{o.amount || 0}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[0.6rem] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${STATUS_STYLES[o.status] || STATUS_STYLES.pending}`}>
+                          {o.status || "pending"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
-        {recentOrders.length === 0 ? (
-          <div className="bg-[#111] border border-white/5 rounded-2xl p-10 text-center text-[#444] text-sm font-bold">
-            No orders yet. Orders will appear here after checkout.
+        {/* Recent Members */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-black text-white">New Members</h2>
+            <Link href="/admin/users" className="text-xs font-black text-[#FF2E2E] uppercase tracking-widest hover:underline">Manage All →</Link>
           </div>
-        ) : (
-          <div className="bg-[#111] border border-white/5 rounded-2xl overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-white/[0.02] border-b border-white/5">
-                <tr>
-                  {["Order ID", "Customer", "Items", "Amount", "Status", "Date"].map(h => (
-                    <th key={h} className="px-4 py-3 text-[0.6rem] font-black text-[#444] uppercase tracking-widest">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {recentOrders.map((o, i) => (
-                  <tr key={o.id || i} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                    <td className="px-4 py-3 text-xs font-mono text-[#555]">{o.id?.slice(-8) || "—"}</td>
-                    <td className="px-4 py-3 text-sm font-bold text-white">{o.customer || "—"}</td>
-                    <td className="px-4 py-3 text-xs text-[#666] max-w-[160px] truncate">{o.items || "—"}</td>
-                    <td className="px-4 py-3 text-sm font-black text-white">₹{o.amount || 0}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-[0.6rem] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${STATUS_STYLES[o.status] || STATUS_STYLES.pending}`}>
-                        {o.status || "pending"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-[#555]">
-                      {o.date ? new Date(o.date).toLocaleDateString("en-IN") : "—"}
-                    </td>
+
+          {recentUsers.length === 0 ? (
+            <div className="bg-[#111] border border-white/5 rounded-2xl p-10 text-center text-[#444] text-sm font-bold">
+              No new members yet.
+            </div>
+          ) : (
+            <div className="bg-[#111] border border-white/5 rounded-2xl overflow-hidden overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-white/[0.02] border-b border-white/5">
+                  <tr>
+                    {["Name", "Phone", "Role"].map(h => (
+                      <th key={h} className="px-4 py-3 text-[0.6rem] font-black text-[#444] uppercase tracking-widest">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {recentUsers.map((u, i) => (
+                    <tr key={u.id || i} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                      <td className="px-4 py-4">
+                        <div className="text-sm font-bold text-white">{u.name}</div>
+                        <div className="text-[0.6rem] text-[#444]">{new Date(u.date).toLocaleDateString()}</div>
+                      </td>
+                      <td className="px-4 py-4 text-xs text-[#888] font-mono">{u.phone}</td>
+                      <td className="px-4 py-4">
+                        <span className={`text-[0.6rem] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${u.role === 'ADMIN' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-white/5 text-[#555] border-white/5'}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </AdminShell>
   );

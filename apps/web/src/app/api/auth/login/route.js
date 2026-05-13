@@ -24,11 +24,15 @@ export async function POST(req) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    if (user.isBlocked) {
+      return NextResponse.json({ error: 'This account has been blocked by the administrator.' }, { status: 403 });
+    }
+
     if (!user.password) {
       return NextResponse.json({ error: 'No password set for this account. Please use OTP.' }, { status: 400 });
     }
 
-    // In a real app, use bcrypt.compare. For now, simple string comparison as we just started setting it
+    // Simple string comparison for now as per initial implementation
     if (user.password !== password) {
       return NextResponse.json({ error: 'Incorrect password' }, { status: 401 });
     }
