@@ -156,21 +156,6 @@ export function AuthProvider({ children }) {
 
   const login = async (phoneOrEmail, password) => {
     try {
-      // Offline Admin Bypass Mode
-      if (phoneOrEmail === "admin@bikemate.com" && password === "admin123") {
-        const mockAdmin = { 
-          id: "admin-1", 
-          name: "Bikemate Master Admin", 
-          email: "admin@bikemate.com", 
-          role: "ADMIN" 
-        };
-        localStorage.setItem("token", "mock-admin-jwt-token");
-        localStorage.setItem("user", JSON.stringify(mockAdmin));
-        setUser(mockAdmin);
-        router.push("/admin/dashboard");
-        return;
-      }
-      
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
