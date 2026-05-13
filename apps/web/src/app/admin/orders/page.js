@@ -161,6 +161,7 @@ export default function AdminOrders() {
           </table>
         </div>
       </div>
+      )}
     </AdminShell>
   );
 }
