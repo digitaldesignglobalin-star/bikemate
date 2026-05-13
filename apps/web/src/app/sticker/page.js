@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { jsPDF } from "jspdf";
 import { toPng } from "html-to-image";
+import QRCode from "qrcode";
 import { useAuth } from "../../components/AuthContext";
 import { useRouter } from "next/navigation";
 
@@ -21,6 +21,7 @@ export default function StickerPage() {
     medicalNotes: user?.medicalNotes || ""
   });
   const [isDownloading, setIsDownloading] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState("");
   const [refNo] = useState(() => Math.floor(Math.random() * 1000000).toString().padStart(6, '0'));
   
   useEffect(() => {
@@ -37,17 +38,52 @@ export default function StickerPage() {
     }
   }, [user]);
 
+  // Generate QR code client-side whenever form data changes
+  const generateQR = useCallback(async () => {
+    const qrDataArr = [
+      `Rider: ${formData.name}`,
+      `SOS: ${formData.contact}`,
+      `Blood: ${formData.blood}`,
+      `City: ${formData.city}`,
+      `Guardian: ${formData.guardian}`,
+      `Medical: ${formData.medicalNotes || 'None'}`
+    ];
+    try {
+      const url = await QRCode.toDataURL(qrDataArr.join('\n'), {
+        width: 300,
+        margin: 1,
+        color: { dark: '#000000', light: '#ffffff' },
+        errorCorrectionLevel: 'M'
+      });
+      setQrDataUrl(url);
+    } catch (err) {
+      console.error("QR generation failed:", err);
+    }
+  }, [formData]);
+
+  useEffect(() => {
+    generateQR();
+  }, [generateQR]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const downloadSticker = async () => {
-    if (stickerRef.current === null) return;
-    // Validate required fields
+  // Validate before download
+  const validate = () => {
     if (!formData.name || !formData.contact) {
-      alert("Please fill in at least your Name and SOS Contact before downloading.");
-      return;
+      alert("Please fill in at least your Rider Name and SOS Contact.");
+      return false;
     }
+    if (!stickerRef.current) {
+      alert("Sticker not ready. Please wait a moment.");
+      return false;
+    }
+    return true;
+  };
+
+  const downloadPNG = async () => {
+    if (!validate()) return;
     setIsDownloading(true);
     try {
       const quality = isPremium ? 4 : 2;
@@ -55,54 +91,42 @@ export default function StickerPage() {
         cacheBust: true,
         pixelRatio: quality,
         backgroundColor: '#ffffff',
+        skipFonts: true,
       });
       const link = document.createElement('a');
       link.download = `bikemet-sticker-${formData.name.replace(/\s+/g, '-').toLowerCase()}.png`;
       link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } catch (err) {
-      console.error('Download failed', err);
-      alert('Download failed. Please try again.');
+      console.error('PNG download failed:', err);
+      alert('PNG download failed. Please try again.');
     } finally {
       setIsDownloading(false);
     }
   };
 
   const downloadPDF = async () => {
-    if (stickerRef.current === null) return;
-    // Validate required fields
-    if (!formData.name || !formData.contact) {
-      alert("Please fill in at least your Name and SOS Contact before downloading.");
-      return;
-    }
+    if (!validate()) return;
     setIsDownloading(true);
     try {
       const quality = isPremium ? 4 : 2;
       const dataUrl = await toPng(stickerRef.current, { 
         pixelRatio: quality,
         backgroundColor: '#ffffff',
+        skipFonts: true,
       });
-      const pdf = new jsPDF('l', 'mm', [100, 45]);
-      pdf.addImage(dataUrl, 'PNG', 0, 0, 100, 45);
+      const pdf = new jsPDF('l', 'mm', [100, 50]);
+      pdf.addImage(dataUrl, 'PNG', 0, 0, 100, 50);
       pdf.save(`bikemet-sticker-${formData.name.replace(/\s+/g, '-').toLowerCase()}.pdf`);
     } catch (err) {
-      console.error('PDF export failed', err);
-      alert('PDF export failed. Please try again.');
+      console.error('PDF download failed:', err);
+      alert('PDF download failed. Please try again.');
     } finally {
       setIsDownloading(false);
     }
   };
-
-  // Simplified QR data for better readability/scanability
-  const qrDataArr = [
-    `Rider: ${formData.name}`,
-    `SOS: ${formData.contact}`,
-    `Blood: ${formData.blood}`,
-    `City: ${formData.city}`,
-    `Guardian: ${formData.guardian}`,
-    `Medical Notes: ${formData.medicalNotes || 'None'}`
-  ];
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrDataArr.join('\n'))}`;
 
   return (
     <div className="animate-page-enter w-full max-w-7xl mx-auto mt-12 px-4 pb-32">
@@ -119,8 +143,8 @@ export default function StickerPage() {
             
             <div className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[0.55rem] font-black text-bh-gray-dark uppercase tracking-widest ml-1">Rider Name</label>
-                <input name="name" value={formData.name} onChange={handleChange} className="w-full bg-[#0D0D0D] border border-white/5 rounded-lg p-3 text-xs focus:border-bh-primary outline-none transition-all" />
+                <label className="text-[0.55rem] font-black text-bh-gray-dark uppercase tracking-widest ml-1">Rider Name *</label>
+                <input name="name" value={formData.name} onChange={handleChange} className="w-full bg-[#0D0D0D] border border-white/5 rounded-lg p-3 text-xs focus:border-bh-primary outline-none transition-all" placeholder="Your full name" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
@@ -131,16 +155,16 @@ export default function StickerPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[0.55rem] font-black text-bh-gray-dark uppercase tracking-widest ml-1">Home City</label>
-                  <input name="city" value={formData.city} onChange={handleChange} className="w-full bg-[#0D0D0D] border border-white/5 rounded-lg p-3 text-xs focus:border-bh-primary outline-none transition-all" />
+                  <input name="city" value={formData.city} onChange={handleChange} className="w-full bg-[#0D0D0D] border border-white/5 rounded-lg p-3 text-xs focus:border-bh-primary outline-none transition-all" placeholder="Mumbai" />
                 </div>
               </div>
               <div className="space-y-1">
                 <label className="text-[0.55rem] font-black text-bh-gray-dark uppercase tracking-widest ml-1">Guardian Name</label>
-                <input name="guardian" value={formData.guardian} onChange={handleChange} className="w-full bg-[#0D0D0D] border border-white/5 rounded-lg p-3 text-xs focus:border-bh-primary outline-none transition-all" />
+                <input name="guardian" value={formData.guardian} onChange={handleChange} className="w-full bg-[#0D0D0D] border border-white/5 rounded-lg p-3 text-xs focus:border-bh-primary outline-none transition-all" placeholder="Parent or emergency contact name" />
               </div>
               <div className="space-y-1">
-                <label className="text-[0.55rem] font-black text-bh-gray-dark uppercase tracking-widest ml-1">SOS Number</label>
-                <input name="contact" value={formData.contact} onChange={handleChange} className="w-full bg-[#0D0D0D] border border-white/5 rounded-lg p-3 text-xs focus:border-bh-primary outline-none transition-all" />
+                <label className="text-[0.55rem] font-black text-bh-gray-dark uppercase tracking-widest ml-1">SOS Number *</label>
+                <input name="contact" value={formData.contact} onChange={handleChange} className="w-full bg-[#0D0D0D] border border-white/5 rounded-lg p-3 text-xs focus:border-bh-primary outline-none transition-all" placeholder="+91 9876543210" />
               </div>
               <div className="space-y-1">
                 <label className="text-[0.55rem] font-black text-bh-gray-dark uppercase tracking-widest ml-1">Medical History (Optional)</label>
@@ -171,11 +195,12 @@ export default function StickerPage() {
              </div>
           </div>
 
+          {/* Download Buttons */}
           <div className="grid grid-cols-2 gap-3">
              <button 
-               onClick={downloadSticker}
+               onClick={downloadPNG}
                disabled={isDownloading}
-               className="btn btn-outline btn-full py-4 rounded-xl border-white/10 font-black uppercase tracking-widest text-[0.6rem] hover:bg-white/5 flex flex-col items-center justify-center gap-1.5"
+               className="btn btn-outline btn-full py-4 rounded-xl border-white/10 font-black uppercase tracking-widest text-[0.6rem] hover:bg-white/5 flex flex-col items-center justify-center gap-1.5 disabled:opacity-50"
              >
                 <span className="text-lg">🖼️</span>
                 <span>{isDownloading ? 'Processing...' : 'Download PNG'}</span>
@@ -185,7 +210,7 @@ export default function StickerPage() {
              <button 
                onClick={downloadPDF}
                disabled={isDownloading}
-               className="btn btn-primary btn-full py-4 rounded-xl font-black uppercase tracking-widest text-[0.6rem] shadow-glow-red flex flex-col items-center justify-center gap-1.5"
+               className="btn btn-primary btn-full py-4 rounded-xl font-black uppercase tracking-widest text-[0.6rem] shadow-glow-red flex flex-col items-center justify-center gap-1.5 disabled:opacity-50"
              >
                 <span className="text-lg">📄</span>
                 <span>{isDownloading ? 'Processing...' : 'Download PDF'}</span>
@@ -194,68 +219,69 @@ export default function StickerPage() {
           </div>
         </div>
 
-        {/* The Sticker Preview - Rectangle & Small Look */}
+        {/* The Sticker Preview */}
         <div className="lg:col-span-8 flex flex-col items-center justify-center p-8 bg-[#121212]/50 border border-white/5 rounded-[3rem] shadow-inner">
            <h4 className="text-[0.5rem] font-black text-bh-gray-dark uppercase tracking-[0.4em] mb-10 opacity-60 italic">Real-Scale Sticker Simulation</h4>
            
            {/* RECTANGLE STICKER UI */}
            <div 
              ref={stickerRef}
+             style={{ fontFamily: 'Arial, Helvetica, sans-serif', backgroundColor: '#ffffff' }}
              className="bg-white text-black w-full max-w-[500px] rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex flex-row border-[3px] border-bh-card overflow-hidden"
            >
               {/* Left Stripe - Branding & Type */}
-              <div className="w-[12%] bg-bh-bg flex items-center justify-center py-4 border-r border-white/10">
-                 <div className="rotate-[-90deg] whitespace-nowrap text-[0.4rem] font-black text-white tracking-[0.4em] uppercase opacity-80">BIKEMET SECURE™</div>
+              <div style={{ backgroundColor: '#0D0D0D', width: '12%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                 <div style={{ transform: 'rotate(-90deg)', whiteSpace: 'nowrap', fontSize: '5px', fontWeight: '900', color: '#ffffff', letterSpacing: '3px', textTransform: 'uppercase', opacity: 0.8 }}>BIKEMET SECURE™</div>
               </div>
 
               {/* Main Content Area */}
-              <div className="flex-1 p-5 flex flex-col">
-                 <div className="flex items-center justify-between mb-4 border-b border-black/10 pb-2">
-                    <div className="flex flex-col">
-                       <span className="text-[0.5rem] font-black text-bh-gray-dark uppercase tracking-widest leading-none mb-1">EMERGENCY RESPONDER INFO</span>
-                       <span className="text-xl font-black font-heading leading-tight tracking-tight uppercase italic">{formData.name}</span>
+              <div style={{ flex: 1, padding: '16px 20px' }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
+                    <div>
+                       <div style={{ fontSize: '6px', fontWeight: '900', color: '#999', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '2px' }}>EMERGENCY RESPONDER INFO</div>
+                       <div style={{ fontSize: '18px', fontWeight: '900', textTransform: 'uppercase', fontStyle: 'italic', lineHeight: 1.1 }}>{formData.name || 'YOUR NAME'}</div>
                     </div>
-                    <div className="flex flex-col items-end">
-                       <span className="text-[0.45rem] font-black text-bh-primary uppercase tracking-widest mb-1">BLOOD GROUP</span>
-                       <span className="text-2xl font-black text-bh-primary font-heading leading-none">{formData.blood}</span>
+                    <div style={{ textAlign: 'right' }}>
+                       <div style={{ fontSize: '5px', fontWeight: '900', color: '#FF2E2E', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '2px' }}>BLOOD GROUP</div>
+                       <div style={{ fontSize: '22px', fontWeight: '900', color: '#FF2E2E', lineHeight: 1 }}>{formData.blood}</div>
                     </div>
                  </div>
 
-                 <div className="flex gap-6 items-start">
-                    <div className="flex-1 space-y-3">
-                       <div className="flex justify-between items-start">
-                          <div className="flex flex-col">
-                             <span className="text-[0.4rem] font-black text-bh-gray-dark uppercase tracking-widest leading-none mb-0.5">SOS Hotline</span>
-                             <span className="text-md font-black italic">{formData.contact}</span>
+                 <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <div>
+                             <div style={{ fontSize: '5px', fontWeight: '900', color: '#999', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '1px' }}>SOS Hotline</div>
+                             <div style={{ fontSize: '12px', fontWeight: '900', fontStyle: 'italic' }}>{formData.contact || '—'}</div>
                           </div>
-                          <div className="flex flex-col items-end">
-                             <span className="text-[0.4rem] font-black text-bh-gray-dark uppercase tracking-widest leading-none mb-0.5">Origin</span>
-                             <span className="text-[0.65rem] font-black uppercase">{formData.city}</span>
+                          <div style={{ textAlign: 'right' }}>
+                             <div style={{ fontSize: '5px', fontWeight: '900', color: '#999', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '1px' }}>Origin</div>
+                             <div style={{ fontSize: '9px', fontWeight: '900', textTransform: 'uppercase' }}>{formData.city || '—'}</div>
                           </div>
                        </div>
-                       <div className="flex flex-col opacity-80 border-t border-black/5 pt-2">
-                          <span className="text-[0.4rem] font-black text-bh-gray-dark uppercase tracking-widest leading-none mb-1">Medical History</span>
-                          <span className="text-[0.55rem] font-bold line-clamp-2">{formData.medicalNotes || "N/A"}</span>
+                       <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: '6px' }}>
+                          <div style={{ fontSize: '5px', fontWeight: '900', color: '#999', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '2px' }}>Medical History</div>
+                          <div style={{ fontSize: '7px', fontWeight: '700', lineHeight: 1.4 }}>{formData.medicalNotes || 'N/A'}</div>
                        </div>
                     </div>
                     
-                    {/* Compact Working QR */}
-                    <div className="w-20 h-20 shrink-0 bg-white border border-black/5 p-1 relative flex items-center justify-center">
-                       <Image 
-                         src={qrUrl} 
-                         alt="QR" 
-                         width={250} 
-                         height={250}
-                         className="mix-blend-multiply transition-all group-hover:scale-105" 
-                       />
-                       <div className="absolute -bottom-1 left-0 right-0 text-[0.3rem] font-black text-center text-bh-gray-dark uppercase scale-75">SCAN ME</div>
+                    {/* QR Code - rendered client-side */}
+                    <div style={{ width: '72px', height: '72px', flexShrink: 0, border: '1px solid #eee', padding: '2px', position: 'relative' }}>
+                       {qrDataUrl && (
+                         <img 
+                           src={qrDataUrl} 
+                           alt="QR Code" 
+                           style={{ width: '100%', height: '100%', display: 'block' }}
+                         />
+                       )}
+                       <div style={{ position: 'absolute', bottom: '-8px', left: 0, right: 0, textAlign: 'center', fontSize: '4px', fontWeight: '900', color: '#999', textTransform: 'uppercase' }}>SCAN ME</div>
                     </div>
                  </div>
 
-                 {/* Official Footer Branding */}
-                 <div className="mt-4 pt-2 border-t-[0.5px] border-black/10 flex justify-between items-end opacity-60">
-                    <div className="text-[0.35rem] font-bold leading-none">REF: BMT-{refNo}</div>
-                    <div className="text-[0.4rem] font-black font-heading italic tracking-tighter uppercase leading-none">Design Global Technology</div>
+                 {/* Footer */}
+                 <div style={{ marginTop: '12px', paddingTop: '6px', borderTop: '0.5px solid #ddd', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', opacity: 0.5 }}>
+                    <div style={{ fontSize: '5px', fontWeight: '700' }}>REF: BMT-{refNo}</div>
+                    <div style={{ fontSize: '5px', fontWeight: '900', fontStyle: 'italic', letterSpacing: '-0.3px', textTransform: 'uppercase' }}>Design Global Technology</div>
                  </div>
               </div>
            </div>
