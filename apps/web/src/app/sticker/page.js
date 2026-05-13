@@ -43,39 +43,51 @@ export default function StickerPage() {
 
   const downloadSticker = async () => {
     if (stickerRef.current === null) return;
+    // Validate required fields
+    if (!formData.name || !formData.contact) {
+      alert("Please fill in at least your Name and SOS Contact before downloading.");
+      return;
+    }
     setIsDownloading(true);
     try {
-      // Free users get 1x quality, Premium get 4x
-      const quality = isPremium ? 4 : 1;
+      const quality = isPremium ? 4 : 2;
       const dataUrl = await toPng(stickerRef.current, { 
         cacheBust: true,
-        pixelRatio: quality, 
+        pixelRatio: quality,
+        backgroundColor: '#ffffff',
       });
       const link = document.createElement('a');
-      link.download = `bikemet-sticker-${isPremium ? '4K' : 'Standard'}.png`;
+      link.download = `bikemet-sticker-${formData.name.replace(/\s+/g, '-').toLowerCase()}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
       console.error('Download failed', err);
+      alert('Download failed. Please try again.');
     } finally {
       setIsDownloading(false);
     }
   };
 
   const downloadPDF = async () => {
-    if (!isPremium) {
-       alert("PDF Export is a Premium feature. Please upgrade!");
-       return;
-    }
     if (stickerRef.current === null) return;
+    // Validate required fields
+    if (!formData.name || !formData.contact) {
+      alert("Please fill in at least your Name and SOS Contact before downloading.");
+      return;
+    }
     setIsDownloading(true);
     try {
-      const dataUrl = await toPng(stickerRef.current, { pixelRatio: 4 });
-      const pdf = new jsPDF('l', 'mm', [100, 45]); // Rectangle shaped PDF
+      const quality = isPremium ? 4 : 2;
+      const dataUrl = await toPng(stickerRef.current, { 
+        pixelRatio: quality,
+        backgroundColor: '#ffffff',
+      });
+      const pdf = new jsPDF('l', 'mm', [100, 45]);
       pdf.addImage(dataUrl, 'PNG', 0, 0, 100, 45);
-      pdf.save(`bikemet-helmet-id.pdf`);
+      pdf.save(`bikemet-sticker-${formData.name.replace(/\s+/g, '-').toLowerCase()}.pdf`);
     } catch (err) {
       console.error('PDF export failed', err);
+      alert('PDF export failed. Please try again.');
     } finally {
       setIsDownloading(false);
     }
@@ -159,28 +171,25 @@ export default function StickerPage() {
              </div>
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
              <button 
                onClick={downloadSticker}
                disabled={isDownloading}
-               className={`btn btn-outline btn-full py-4 rounded-xl border-white/10 font-black uppercase tracking-widest text-[0.65rem] hover:bg-white/5 flex items-center justify-center gap-2`}
+               className="btn btn-outline btn-full py-4 rounded-xl border-white/10 font-black uppercase tracking-widest text-[0.6rem] hover:bg-white/5 flex flex-col items-center justify-center gap-1.5"
              >
-                {isDownloading ? 'Processing...' : (
-                   <>
-                      <span>Download PNG</span>
-                      {!isPremium && <span className="text-[0.55rem] bg-white/10 px-2 py-0.5 rounded ml-2">Low Res</span>}
-                      {isPremium && <span className="text-[0.55rem] bg-bh-primary/20 px-2 py-0.5 rounded ml-2">4K Quality</span>}
-                   </>
-                )}
+                <span className="text-lg">🖼️</span>
+                <span>{isDownloading ? 'Processing...' : 'Download PNG'}</span>
+                {isPremium && <span className="text-[0.5rem] bg-bh-primary/20 text-bh-primary px-2 py-0.5 rounded">4K</span>}
              </button>
 
              <button 
                onClick={downloadPDF}
                disabled={isDownloading}
-               className={`btn btn-full py-4 rounded-xl font-black uppercase tracking-widest text-[0.65rem] flex items-center justify-center gap-2 ${isPremium ? 'btn-primary shadow-glow-red' : 'bg-white/5 text-bh-gray pointer-events-none opacity-50'}`}
+               className="btn btn-primary btn-full py-4 rounded-xl font-black uppercase tracking-widest text-[0.6rem] shadow-glow-red flex flex-col items-center justify-center gap-1.5"
              >
-                {isPremium ? 'Download PDF Document' : 'PDF Export (Premium only)'}
-                {isPremium ? <span className="text-sm">📄</span> : <span className="text-sm">🔒</span>}
+                <span className="text-lg">📄</span>
+                <span>{isDownloading ? 'Processing...' : 'Download PDF'}</span>
+                {isPremium && <span className="text-[0.5rem] bg-white/20 px-2 py-0.5 rounded">4K</span>}
              </button>
           </div>
         </div>
