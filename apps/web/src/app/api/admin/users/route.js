@@ -23,7 +23,25 @@ export async function GET(req) {
     }
 
     const users = await prisma.user.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        city: true,
+        role: true,
+        bloodGroup: true,
+        gender: true,
+        bikeModel: true,
+        bikeRegNo: true,
+        isVolunteer: true,
+        subscriptionActive: true,
+        subscriptionPlan: true,
+        isBlocked: true,
+        createdAt: true,
+        updatedAt: true,
+      }
     });
 
     return NextResponse.json({
