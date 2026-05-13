@@ -17,27 +17,55 @@ const ADMIN_PIN = "bikemate2026";
 export default function AdminShell({ children }) {
   const router   = useRouter();
   const pathname = usePathname();
-  const [authed,    setAuthed]    = useState(() => {
-    if (typeof window === "undefined") return false;
-    const ok   = localStorage.getItem("bikemate_admin_auth") === "true";
-    const user = (() => { try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; } })();
-    return ok || user?.role === "ADMIN";
-  });
-  const [pin,       setPin]       = useState("");
-  const [pinError,  setPinError]  = useState("");
-  const [booting,   setBooting]   = useState(() => {
-    // If we're already authed from initializer, we don't need a "booting" state for flash
-    return false; 
-  });
+  
+  const [booting, setBooting] = useState(true);
+  const [authed, setAuthed] = useState(false);
+  const [hasToken, setHasToken] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
-    // Already handled in initializers
-  }, []);
+    // Check 1: Does the user have a valid JWT token from logging in?
+    const token = localStorage.getItem("token");
+    const userStr = localStorage.getItem("user");
+    
+    if (!token || !userStr) {
+      // No login session — redirect to login page
+      router.push("/login");
+      return;
+    }
+
+    // Check if user has admin role
+    let user = null;
+    try { user = JSON.parse(userStr); } catch {}
+    
+    setHasToken(true);
+
+    // Check 2: Has the admin PIN been entered?
+    const pinOk = localStorage.getItem("bikemate_admin_auth") === "true";
+    const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+    
+    if (pinOk || isAdmin) {
+      setAuthed(true);
+    }
+    
+    setBooting(false);
+  }, [router]);
 
   if (booting) return (
     <div className="fixed inset-0 flex items-center justify-center bg-[#0D0D0D] z-[999]">
       <div className="w-10 h-10 rounded-full border-2 border-[#FF2E2E] border-t-transparent animate-spin" />
+    </div>
+  );
+
+  // If no token, we already redirected — show nothing
+  if (!hasToken) return (
+    <div className="fixed inset-0 flex items-center justify-center bg-[#0D0D0D] z-[999]">
+      <div className="text-center">
+        <div className="w-10 h-10 rounded-full border-2 border-[#FF2E2E] border-t-transparent animate-spin mx-auto mb-4" />
+        <p className="text-[#555] text-sm">Redirecting to login...</p>
+      </div>
     </div>
   );
 
@@ -133,7 +161,13 @@ export default function AdminShell({ children }) {
             {!collapsed && <span className="text-xs font-bold">View Site</span>}
           </Link>
           <button
-            onClick={() => { localStorage.removeItem("bikemate_admin_auth"); router.push("/"); }}
+            onClick={() => { 
+              localStorage.removeItem("bikemate_admin_auth"); 
+              localStorage.removeItem("token");
+              localStorage.removeItem("user");
+              localStorage.removeItem("isPremium");
+              router.push("/"); 
+            }}
             className="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-[#444] hover:text-[#FF2E2E] hover:bg-[#FF2E2E]/5 transition-all"
           >
             <span className="shrink-0 text-base">🚪</span>
