@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 
 const getTransporter = async () => {
-    const useRealSMTP = process.env.SMTP_USER && process.env.SMTP_PASS && process.env.SMTP_USER !== "ashishganguly122@gmail.com";
+    const useRealSMTP = process.env.SMTP_USER && process.env.SMTP_PASS;
     
     if (useRealSMTP) {
         return nodemailer.createTransport({
@@ -53,7 +53,7 @@ export const sendOTPMail = async (email, otp) => {
             html: htmlContent,
         });
 
-        if (!process.env.SMTP_USER || process.env.SMTP_USER === "ashishganguly122@gmail.com") {
+        if (!process.env.SMTP_USER) {
             console.log("\n-----------------------------------------");
             console.log("OTP SENT (MOCK: ETHEREAL)");
             console.log("OTP:", otp);
